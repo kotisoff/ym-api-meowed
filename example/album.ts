@@ -11,7 +11,7 @@ const wrappedApi = new WrappedYMApi();
     album.volumes.forEach((volume) =>
       volume.forEach((track, i) => console.log(`${i + 1}. ${track.title}`))
     );
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

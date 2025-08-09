@@ -10,7 +10,7 @@ const api = new YMApi();
     const options: { pageSize: number } = { pageSize: 15 };
     const gorillazResult = await api.getArtistTracks(gorillazId, options);
     gorillazResult.tracks.forEach((track) => console.log(track.title));
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

@@ -18,6 +18,11 @@ export default class UrlExtractor implements UrlExtractorInterface {
   }
 
   extractTrackId(url: string): number {
+    // Support new short track URL: /track/<id>
+    const direct = url.match(
+      /(https?:\/\/)?music\.yandex\.ru\/track\/(?<id>\d+)/
+    );
+    if (direct?.groups?.id) return Number(direct.groups.id);
     const extracted = this.extract(
       url,
       /(https?:\/\/)?music\.yandex\.ru\/album\/\d+\/track\/(?<id>\d+)/,
@@ -55,5 +60,16 @@ export default class UrlExtractor implements UrlExtractorInterface {
       ["id", "user"]
     );
     return { id: Number(extracted.id), user: extracted.user };
+  }
+
+  extractPlaylistIdNew(url: string): { uid: string } {
+    const match = url.match(
+      /(https?:\/\/)?music\.yandex\.ru\/playlist\/(?<uid>(?:ar\.)?[A-Za-z0-9\-]+)/
+    );
+    if (!match?.groups?.uid) {
+      throw new Error("non playlist uid url received");
+    }
+    const uid = match.groups.uid;
+    return { uid };
   }
 }

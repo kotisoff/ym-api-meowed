@@ -5,7 +5,8 @@ import {
 } from "./PreparedRequest/index";
 import fallbackConfig from "./PreparedRequest/config";
 import HttpClient from "./Network/HttpClient";
-import { parseStringPromise } from "xml2js";
+import UrlExtractor from "./Network/UrlExtractor";
+import { XMLParser } from "fast-xml-parser";
 import * as crypto from "crypto";
 import {
   ApiConfig,
@@ -308,19 +309,45 @@ export default class YMApi {
   }
 
   /**
-   * GET: /users/[user_id]/playlists/[playlist_kind]
-   * @returns a playlist without tracks
+   * GET: /users/[user_id]/playlists/[playlist_kind] or /playlist/[playlist_uuid]
+   * Accepts either legacy playlist kind (number) with optional user
+   * or a UID/URL string for the new endpoint.
    */
   getPlaylist(
-    playlistId: number,
+    playlist: number | string,
     user: number | string | null = null
   ): Promise<Playlist> {
-    const uid = [null, 0, ""].includes(user) ? this.user.uid : user;
-    const request = apiRequest()
-      .setPath(`/users/${uid}/playlists/${playlistId}`)
-      .addHeaders(this.getAuthHeader());
+    if (typeof playlist === "number") {
+      const uid = [null, 0, ""].includes(user) ? this.user.uid : user;
+      const request = apiRequest()
+        .setPath(`/users/${uid}/playlists/${playlist}`)
+        .addHeaders(this.getAuthHeader());
+      return this.httpClient.get(request) as Promise<Playlist>;
+    }
 
+    // New endpoint path using UID or URL
+    let uidStr = playlist;
+    if (uidStr.includes("/playlists/")) {
+      uidStr = uidStr.replace("/playlists/", "/playlist/");
+    }
+    if (uidStr.includes("/playlist/")) {
+      const extractor = new UrlExtractor();
+      uidStr = extractor.extractPlaylistIdNew(uidStr).uid;
+    }
+    const request = apiRequest()
+      .setPath(`/playlist/${uidStr}`)
+      .addHeaders(this.getAuthHeader())
+      .addQuery({ richTracks: "true" });
     return this.httpClient.get(request) as Promise<Playlist>;
+  }
+
+  /**
+   * GET: /playlist/[playlist_uuid]
+   * @returns a playlist without tracks
+   */
+  // Kept for backward compatibility; now delegates to getPlaylist
+  getPlaylistNew(playlistUidOrUrl: string): Promise<Playlist> {
+    return this.getPlaylist(playlistUidOrUrl);
   }
 
   /**
@@ -527,11 +554,12 @@ export default class YMApi {
   ): Promise<string> {
     const request = directLinkRequest(trackDownloadUrl);
     const xml = await this.httpClient.get(request);
-    const parsedXml = await parseStringPromise(xml);
-    const host = parsedXml["download-info"].host[0];
-    const path = parsedXml["download-info"].path[0];
-    const ts = parsedXml["download-info"].ts[0];
-    const s = parsedXml["download-info"].s[0];
+    const parser = new XMLParser({ ignoreAttributes: false });
+    const parsedXml = parser.parse(xml as string);
+    const host = parsedXml["download-info"].host as string;
+    const path = parsedXml["download-info"].path as string;
+    const ts = parsedXml["download-info"].ts as string;
+    const s = parsedXml["download-info"].s as string;
     const sign = crypto
       .createHash("md5")
       .update("XGRlBW9FXlekgbPrRHuSiA" + path.slice(1) + s)

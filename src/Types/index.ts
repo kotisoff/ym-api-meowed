@@ -365,7 +365,7 @@ export type Artist = {
   ticketsAvailable?: boolean;
   likesCount: number;
   dbAliases: Array<string>;
-  // popularTracks?: Array<Track>;
+  popularTracks?: Array<Track>;
   // regions?: Array<Region>;
   // albums?: Array<Album>;
   // alsoAlbums?: Array<Album>;

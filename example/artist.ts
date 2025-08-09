@@ -10,7 +10,7 @@ const wrappedApi = new WrappedYMApi();
     // OR
     // const artist = await wrappedApi.getArtist("https://music.yandex.ru/artist/800020");
     console.log({ artist });
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

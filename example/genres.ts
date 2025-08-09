@@ -29,7 +29,7 @@ const api = new YMApi();
         });
       }
     });
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

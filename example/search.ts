@@ -1,5 +1,4 @@
-import { SearchType } from "../src/types";
-import { YMApi } from "../src";
+import { YMApi, Types } from "../src";
 import config from "./config";
 const api = new YMApi();
 
@@ -7,7 +6,7 @@ const api = new YMApi();
   try {
     await api.init(config.user);
     let query = "gorillaz";
-    const options: { type: SearchType } = { type: "artist" };
+    const options: { type: Types.SearchType } = { type: "artist" };
     const artistResult = await api.search(query, options);
     console.log(
       `Search result for artists "${query}" (page: ${artistResult.page}, per page: ${artistResult.perPage})`
@@ -33,7 +32,7 @@ const api = new YMApi();
     result.tracks?.results.forEach((track) => {
       console.log(track.title + " - " + track.artists[0]?.name);
     });
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

@@ -10,7 +10,7 @@ const api = new YMApi();
 
     const status = await api.getAccountStatus();
     console.log(`logged in as ${status.account.login}`);
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();

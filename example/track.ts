@@ -7,7 +7,7 @@ const api = new YMApi();
     await api.init(config.user);
     const searchResult = await api.search("gorillaz", { type: "artist" });
     const gorillaz = searchResult.artists?.results[0];
-    const gorillazMostPopularTrack = gorillaz?.popularTracks[0];
+    const gorillazMostPopularTrack = gorillaz?.popularTracks?.[0];
     const gorillazMostPopularTrackId = gorillazMostPopularTrack?.id as number;
     console.log({ searchResult, gorillaz, gorillazMostPopularTrack });
 
@@ -34,7 +34,7 @@ const api = new YMApi();
       hqMp3Track.downloadInfoUrl
     );
     console.log({ getTrackDirectLinkResult });
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+  } catch (e: any) {
+    console.log(`api error: ${e?.message ?? String(e)}`);
   }
 })();
