@@ -48,10 +48,10 @@
     "smoke:playlist": "dotenv -e .env -- tsx example/playlist.ts",
     "smoke:playlist-share": "dotenv -e .env -- tsx example/playlist-share.ts",
     "smoke:track": "dotenv -e .env -- tsx example/track.ts",
-    "smoke:track-140421443": "dotenv -e .env -- tsx example/track-140421443.ts",
     "raw:track": "dotenv -e .env -- tsx example/raw-track.ts",
+    "smoke:get-track": "dotenv -e .env -- tsx example/get-track.ts",
     "smoke:tracks": "dotenv -e .env -- tsx example/tracks.ts",
     "smoke:track-wrapped": "dotenv -e .env -- tsx example/track-wrapped.ts",
-    "smoke:all": "npm run smoke:xml && npm run smoke:token && npm run smoke:artist && npm run smoke:album && npm run smoke:feed && npm run smoke:genres && npm run smoke:playlist && npm run smoke:playlist-share && npm run smoke:track && npm run smoke:tracks && npm run smoke:track-wrapped"
+    "smoke:summary": "tsx smoke-runner.ts"
   }
 }

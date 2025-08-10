@@ -52,24 +52,30 @@ export default class UrlExtractor implements UrlExtractorInterface {
     return Number(extracted.id);
   }
 
-  extractPlaylistId(url: string): { id: number; user: string } {
-    const extracted = this.extract(
-      url,
-      /(https?:\/\/)?music\.yandex\.ru\/users\/(?<user>[\w\d\-_\.]+)\/playlists\/(?<id>\d+)/,
-      "playlist",
-      ["id", "user"]
-    );
-    return { id: Number(extracted.id), user: extracted.user };
-  }
-
-  extractPlaylistIdNew(url: string): { uid: string } {
-    const match = url.match(
-      /(https?:\/\/)?music\.yandex\.ru\/playlist\/(?<uid>(?:ar\.)?[A-Za-z0-9\-]+)/
-    );
-    if (!match?.groups?.uid) {
-      throw new Error("non playlist uid url received");
+  extractPlaylistId(url: string): { id: number | string; user: string | null } {
+    // Prefer explicit user-based playlists first to avoid misclassifying
+    // URLs like "/users/<user>/playlists/<id>" as UUID-style.
+    if (url.includes("/users/") && url.includes("/playlists/")) {
+      const extracted = this.extract(
+        url,
+        /(https?:\/\/)?music\.yandex\.ru\/users\/(?<user>[\w\d\-_\.]+)\/playlists\/(?<id>\d+)/,
+        "playlist",
+        ["id", "user"]
+      );
+      return { id: Number(extracted.id), user: extracted.user };
     }
-    const uid = match.groups.uid;
-    return { uid };
+
+    if (url.includes("/playlists/") || url.includes("/playlist/")) {
+      const extracted = this.extract(
+        url,
+        /(https?:\/\/)?music\.yandex\.ru\/playlists?\/(?<uid>(?:ar\.)?[A-Za-z0-9\-]+)/,
+        "playlist",
+        ["uid"]
+      );
+      return { id: extracted.uid, user: null };
+    }
+
+    // If neither pattern matches, report a clear error
+    throw new Error("non playlist url received");
   }
 }

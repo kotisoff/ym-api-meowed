@@ -23,7 +23,6 @@ import {
 } from "./Types";
 import YMApi from "./YMApi";
 import UrlExtractor from "./Network/UrlExtractor";
-import { fetch as undiciFetch } from "undici";
 
 export default class WrappedYMApi {
   constructor(
@@ -66,52 +65,11 @@ export default class WrappedYMApi {
   private getPlaylistId(
     playlist: PlaylistId | PlaylistUrl,
     user?: UserId | UserName
-  ): { id: PlaylistId; user: UserName } {
+  ): { id: PlaylistId | string; user: UserName | null } {
     if (typeof playlist === "string") {
       return this.urlExtractor.extractPlaylistId(playlist);
     } else {
-      return { id: playlist, user: String(user) };
-    }
-  }
-
-  /**
-   * Resolve share/alias playlist URLs like
-   * https://music.yandex.ru/playlists/ar.<uuid>
-   * into canonical https://music.yandex.ru/users/<user>/playlists/<kind>
-   * If resolution is blocked by SmartCaptcha, throws an explanatory error.
-   */
-  private async resolvePlaylistUrl(
-    playlist: PlaylistId | PlaylistUrl,
-    user?: UserId | UserName
-  ): Promise<{ id: PlaylistId; user: UserName }> {
-    if (typeof playlist !== "string") {
-      return { id: playlist, user: String(user) };
-    }
-
-    // Try canonical extractor first
-    try {
-      return this.urlExtractor.extractPlaylistId(playlist);
-    } catch (_) {
-      /* fallthrough */
-    }
-
-    // If looks like share alias, try to follow redirects to canonical
-    const isShareAlias = /https?:\/\/music\.yandex\.ru\/playlists\//.test(
-      playlist
-    );
-    if (!isShareAlias) {
-      throw new Error("Unsupported playlist URL format");
-    }
-
-    const response = await undiciFetch(playlist, { redirect: "follow" });
-    const finalUrl = response.url;
-    // Attempt to extract from final URL
-    try {
-      return this.urlExtractor.extractPlaylistId(finalUrl);
-    } catch (err) {
-      throw new Error(
-        "Unable to resolve playlist share URL to canonical. The web page may be protected by SmartCaptcha; please open the link in a browser and copy the canonical users/<user>/playlists/<kind> URL."
-      );
+      return { id: playlist, user: user ? String(user) : null };
     }
   }
 
@@ -150,39 +108,15 @@ export default class WrappedYMApi {
     );
   }
 
-  async getPlaylist(
+  getPlaylist(
     playlist: PlaylistId | PlaylistUrl,
     user?: UserId | UserName
   ): Promise<Playlist> {
-    const pl = await this.resolvePlaylistUrl(playlist, user);
-    return this.api.getPlaylist(pl.id, pl.user);
-  }
-
-  /**
-   * Accepts multiple playlist URLs or ids. If URLs are for different users,
-   * groups requests per user and concatenates results.
-   */
-  async getPlaylistsFromUrls(
-    playlists: Array<PlaylistId | PlaylistUrl>,
-    user?: UserId | UserName,
-    options: { mixed?: boolean; "rich-tracks"?: boolean } = {}
-  ): Promise<Array<Playlist>> {
-    const resolved = await Promise.all(
-      playlists.map((p) => this.resolvePlaylistUrl(p, user))
-    );
-    const byUser = new Map<string, number[]>();
-    for (const { id, user } of resolved) {
-      const key = String(user);
-      if (!byUser.has(key)) byUser.set(key, []);
-      byUser.get(key)!.push(Number(id));
+    const pl = this.getPlaylistId(playlist, user);
+    if (typeof pl.id === "number") {
+      return this.api.getPlaylist(pl.id, pl.user);
     }
-
-    const results: Playlist[] = [];
-    for (const [groupUser, kinds] of byUser.entries()) {
-      const part = await this.api.getPlaylists(kinds, groupUser, options);
-      results.push(...part);
-    }
-    return results;
+    return this.api.getPlaylist(pl.id);
   }
 
   getTrack(track: TrackId | TrackUrl): Promise<Track> {
