@@ -1,5 +1,3 @@
-import { fetch } from "undici";
-
 const RAW_URL =
   process.env.RAW_URL ||
   "https://api.music.yandex.ru/playlists/ar.dcd89e75-5716-4605-9d69-9f6695979529?utm_source=web&utm_medium=copy_link";

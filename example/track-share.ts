@@ -9,8 +9,10 @@ const WrappedApi = new WrappedYMApi();
     await api.init(config.user);
     await WrappedApi.init(config.user);
 
-    const trackUrl = "https://music.yandex.ru/album/11246103/track/68070362?utm_source=desktop&utm_medium=copy_link";
-    const trackUrlNew = "https://music.yandex.ru/track/68070362?utm_source=web&utm_medium=copy_link"
+    const trackUrl =
+      "https://music.yandex.ru/album/11246103/track/68070362?utm_source=desktop&utm_medium=copy_link";
+    const trackUrlNew =
+      "https://music.yandex.ru/track/68070362?utm_source=web&utm_medium=copy_link";
 
     const trackId = 68070362;
     const trackIdNew = 68070362;

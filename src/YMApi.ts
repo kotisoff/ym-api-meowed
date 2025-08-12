@@ -315,8 +315,8 @@ export default class YMApi {
   getPlaylist(
     playlistId: number,
     user?: number | string | null
-  ): Promise<Playlist>
-  getPlaylist(playlistId: string): Promise<Playlist>
+  ): Promise<Playlist>;
+  getPlaylist(playlistId: string): Promise<Playlist>;
   getPlaylist(
     playlistId: number | string,
     user: number | string | null = null

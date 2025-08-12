@@ -24,11 +24,12 @@ const tests: TestEntry[] = [
   // Optional/legacy entries below — will be reported as not found if missing
 
   { label: "raw:track", file: "tests/raw-track.ts" },
-  { label: "smoke:xml", file: "tests/smoke-xml-parse.ts" },
+  { label: "smoke:xml", file: "tests/smoke-xml-parse.ts" }
 ];
 
-async function runOne(test: TestEntry): Promise<{ label: string; ok: boolean; reason?: string }>
-{
+async function runOne(
+  test: TestEntry
+): Promise<{ label: string; ok: boolean; reason?: string }> {
   const absFile = path.resolve(projectRoot, test.file);
   if (!fs.existsSync(absFile)) {
     return { label: test.label, ok: false, reason: "no file" };
@@ -37,14 +38,7 @@ async function runOne(test: TestEntry): Promise<{ label: string; ok: boolean; re
   return new Promise((resolve) => {
     const child = spawn(
       process.platform === "win32" ? "npx.cmd" : "npx",
-      [
-        "dotenv",
-        "-e",
-        ".env",
-        "--",
-        "tsx",
-        absFile
-      ],
+      ["dotenv", "-e", ".env", "--", "tsx", absFile],
       {
         cwd: projectRoot,
         stdio: "inherit"
@@ -89,4 +83,3 @@ runAll().catch((e) => {
   console.error("smoke-runner error:", e);
   process.exit(1);
 });
-

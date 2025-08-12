@@ -7,21 +7,26 @@ const api = new YMApi();
   try {
     await WrappedApi.init(config.user);
     await api.init(config.user);
-    
+
     const playlistUidWrapped =
       "https://music.yandex.ru/playlists/ar.dcd89e75-5716-4605-9d69-9f6695979529?utm_source=web&utm_medium=copy_link";
-    const playlistUid =
-      "ar.dcd89e75-5716-4605-9d69-9f6695979529";
+    const playlistUid = "ar.dcd89e75-5716-4605-9d69-9f6695979529";
 
-    const playlistOlddtWrapped = "https://music.yandex.ru/users/yamusic-bestsongs/playlists/3246342?utm_source=desktop&utm_medium=copy_link";
+    const playlistOlddtWrapped =
+      "https://music.yandex.ru/users/yamusic-bestsongs/playlists/3246342?utm_source=desktop&utm_medium=copy_link";
     const playlistOlddt = { user: "yamusic-bestsongs", id: 3246342 };
 
-    const playlistWrappedDirect = await WrappedApi.getPlaylist(playlistUidWrapped);
-    const playlistOldWrappedDirect = await WrappedApi.getPlaylist(playlistOlddtWrapped);
+    const playlistWrappedDirect =
+      await WrappedApi.getPlaylist(playlistUidWrapped);
+    const playlistOldWrappedDirect =
+      await WrappedApi.getPlaylist(playlistOlddtWrapped);
 
     const playlistApi = await api.getPlaylist(playlistUid);
-    const playlistOldApi = await api.getPlaylist(playlistOlddt.id, playlistOlddt.user);
-    
+    const playlistOldApi = await api.getPlaylist(
+      playlistOlddt.id,
+      playlistOlddt.user
+    );
+
     console.log("WrappedAPI");
     console.log(playlistOldWrappedDirect.tracks?.length);
     console.log(playlistWrappedDirect.tracks?.length);
