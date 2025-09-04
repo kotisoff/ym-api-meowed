@@ -31,6 +31,10 @@ export default class Request implements RequestInterface {
     this.path = path;
     return this;
   }
+  setHost(host: string): RequestInterface {
+    this.host = host;
+    return this;
+  }
   getHeaders(): RequestHeaders {
     return this.headers;
   }

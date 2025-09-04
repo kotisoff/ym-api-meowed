@@ -19,11 +19,16 @@ export default class HttpClient implements HttpClientInterface {
     };
 
     if (["PUT", "POST", "DELETE", "PATCH"].includes(method.toUpperCase())) {
-      axiosRequest.data = request.getBodyDataString();
-      axiosRequest.headers = {
-        ...axiosRequest.headers,
-        ...{ "content-type": "application/x-www-form-urlencoded" }
-      };
+      const contentType = (axiosRequest.headers?.["content-type"] || axiosRequest.headers?.["Content-Type"]) as string | undefined;
+      if (contentType && contentType.toLowerCase().includes("application/json")) {
+        axiosRequest.data = request.getBodyData();
+      } else {
+        axiosRequest.data = request.getBodyDataString();
+        axiosRequest.headers = {
+          ...axiosRequest.headers,
+          ...{ "content-type": "application/x-www-form-urlencoded" }
+        };
+      }
     }
 
     const { data } = await axios(axiosRequest);

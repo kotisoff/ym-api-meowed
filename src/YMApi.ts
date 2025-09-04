@@ -48,7 +48,9 @@ import {
   AllStationsListResponse,
   RecomendedStationsListResponse,
   QueuesResponse,
-  QueueResponse
+  QueueResponse,
+  RotorSessionCreateBody,
+  RotorSessionCreateResponse
 } from "./Types";
 import { HttpClientInterface, ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
@@ -764,6 +766,31 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader());
 
     return this.httpClient.get(request) as Promise<StationInfoResponse>;
+  }
+
+  /**
+   * POST: /rotor/session/new
+   * @param seeds array of station ids e.g. ["user:onyourwave"]
+   * @param includeTracksInResponse whether to include tracks in response
+   */
+  createRotorSession(
+    seeds: Array<string>,
+    includeTracksInResponse: boolean = true
+  ): Promise<RotorSessionCreateResponse> {
+    const body: RotorSessionCreateBody = {
+      seeds,
+      ...(includeTracksInResponse !== undefined
+        ? { includeTracksInResponse }
+        : {})
+    };
+
+    const request = apiRequest()
+      .setPath(`/rotor/session/new`)
+      .addHeaders(this.getAuthHeader())
+      .addHeaders({ "content-type": "application/json" })
+      .setBodyData(body as unknown as any);
+
+    return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
   }
 
   /**

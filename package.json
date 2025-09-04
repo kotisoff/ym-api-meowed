@@ -28,10 +28,10 @@
     "fast-xml-parser": "^5.2.5"
   },
   "devDependencies": {
-    "@types/node": "^24.2.1",
+    "@types/node": "^24.3.1",
     "dotenv-cli": "^10.0.0",
     "prettier": "3.6.2",
-    "tsx": "^4.20.3",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "scripts": {
@@ -52,6 +52,9 @@
     "smoke:get-track": "dotenv -e .env -- tsx example/get-track.ts",
     "smoke:tracks": "dotenv -e .env -- tsx example/tracks.ts",
     "smoke:track-wrapped": "dotenv -e .env -- tsx example/track-wrapped.ts",
-    "smoke:summary": "tsx smoke-runner.ts"
+    "smoke:summary": "tsx smoke-runner.ts",
+    "smoke:station-new": "dotenv -e .env -- tsx example/station-new.ts",
+    "smoke:station-tracks": "dotenv -e .env -- tsx example/station-tracks.ts",
+    "smoke:create-rotor-session": "dotenv -e .env -- tsx example/create-rotor-session.ts"
   }
 }
