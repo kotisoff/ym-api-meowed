@@ -794,6 +794,22 @@ export default class YMApi {
   }
 
   /**
+   * POST: /rotor/{sessionId}/tracks
+   * @param seeds array of station ids e.g. user:onyourwave or ONF9-3TmPkPrNku4Kl5-uOAR
+   */
+  postRotorSessionTracks(
+    sessionId: string,
+  ): Promise<RotorSessionCreateResponse> {
+    const request = apiRequest()
+      .setPath(`/rotor/session/${sessionId}/tracks`)
+      .addHeaders(this.getAuthHeader())
+      .addHeaders({ "content-type": "application/json" })
+
+    return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
+  }
+
+
+  /**
    * GET: /queues
    * @returns queues without tracks
    */
