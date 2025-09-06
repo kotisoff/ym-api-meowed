@@ -802,7 +802,7 @@ export default class YMApi {
   postRotorSessionTracks(
     sessionId: string,
     options?: {
-      queue?: string;
+      queue?: string[];
       batchId?: string;
     }
   ): Promise<RotorSessionCreateResponse> {
