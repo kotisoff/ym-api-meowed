@@ -11,7 +11,11 @@ async function main() {
   const api = new YMApi();
   await api.init({ access_token, uid });
 
-  const tracks = await api.postRotorSessionTracks(`ONF9-3TmPkPrNku4Kl5-uOAR`);
+  const session = await api.createRotorSession(["user:onyourwave"]);
+
+  const tracks = await api.postRotorSessionTracks(session.radioSessionId, {
+    batchId: session.batchId
+  });
   console.log(tracks.sequence[0].track.title);
 }
 
@@ -19,5 +23,3 @@ main().catch((e) => {
   console.error(e?.response?.data || e);
   process.exit(1);
 });
-
-

@@ -14,7 +14,9 @@ async function main() {
   const tracks = await api.getStationTracks(`track:29168781`);
   console.log(tracks.sequence[0].track.title);
 
-  const nextNext = await api.getStationTracks(`track:${tracks.sequence[0].track.id}`);
+  const nextNext = await api.getStationTracks(
+    `track:${tracks.sequence[0].track.id}`
+  );
   console.log("Next batch:", nextNext.sequence[0].track.title);
 }
 
@@ -22,5 +24,3 @@ main().catch((e) => {
   console.error(e?.response?.data || e);
   process.exit(1);
 });
-
-

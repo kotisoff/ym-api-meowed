@@ -11,12 +11,12 @@ async function main() {
   const api = new YMApi();
   await api.init({ access_token, uid });
 
-    const trackId = 124413086; // ID трека
-    const sess = await api.createRotorSession([`track:${trackId}`], true);
+  const trackId = 124413086; // ID трека
+  const sess = await api.createRotorSession([`track:${trackId}`], true);
 
-//   const seeds = ["user:onyourwave"];
-//   const resp = await api.createRotorSession(seeds, true);
-    console.dir(sess, { depth: 2, maxArrayLength: 5, colors: true });
+  //   const seeds = ["user:onyourwave"];
+  //   const resp = await api.createRotorSession(seeds, true);
+  console.dir(sess, { depth: 2, maxArrayLength: 5, colors: true });
 }
 
 main().catch((e) => {
