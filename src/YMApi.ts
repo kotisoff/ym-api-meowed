@@ -50,10 +50,16 @@ import {
   QueuesResponse,
   QueueResponse,
   RotorSessionCreateBody,
-  RotorSessionCreateResponse
+  RotorSessionCreateResponse,
+  DownloadTrackCodec,
+  DownloadTrackQuality,
+  FileInfoResponse,
+  FileInfoResponseNew
 } from "./Types";
 import { HttpClientInterface, ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
+import { request } from 'undici';
+import { Types } from '.';
 
 export default class YMApi {
   private user: ApiUser = {
@@ -534,16 +540,59 @@ export default class YMApi {
    * @returns track download information
    */
   getTrackDownloadInfo(
-    trackId: TrackId
+    trackId: TrackId,
+    canUseStreaming: Boolean = true
   ): Promise<GetTrackDownloadInfoResponse> {
+    const ts = Math.floor(Date.now() / 1000);
+
     const request = apiRequest()
       .setPath(`/tracks/${trackId}/download-info`)
-      .addHeaders(this.getAuthHeader());
-
+      .addHeaders(this.getAuthHeader())
+      .addQuery({
+        ts: String(ts),
+        can_use_streaming: String(canUseStreaming)
+      });
+      
     return this.httpClient.get(
       request
     ) as Promise<GetTrackDownloadInfoResponse>;
   }
+
+  async getTrackDownloadInfoNew(
+    trackId: string,
+    quality: Types.DownloadTrackQuality = Types.DownloadTrackQuality.Lossless
+  ): Promise<FileInfoResponseNew> {
+    if (!this.user.token) throw new Error("User token is missing")
+
+    const ts = Math.floor(Date.now() / 1000)
+    const codecs = "flac,aac,he-aac,mp3"
+    const transports = "raw"
+    const secret = "kzqU4XhfCaY6B6JTHODeq5"
+
+    // строим HMAC
+    const hmacString = `${ts}${trackId}losslessflacaache-aacmp3raw`;
+    const hmacSign = crypto.createHmac('sha256', secret)
+      .update(hmacString)
+      .digest();
+    const sign = Buffer.from(hmacSign).toString('base64').slice(0, -1);
+
+    // формируем запрос
+    const request = apiRequest()
+      .setPath(`/get-file-info`)
+      .addHeaders(this.getAuthHeader())
+      .addQuery({
+        ts: String(ts),
+        trackId,
+        quality: DownloadTrackQuality.Lossless,
+        codecs,
+        transports,
+        sign
+      })
+
+    return await this.httpClient.get(request) as FileInfoResponseNew
+  }
+
+
 
   /**
    * @returns track direct link
@@ -553,20 +602,35 @@ export default class YMApi {
     short: Boolean = false
   ): Promise<string> {
     const request = directLinkRequest(trackDownloadUrl);
-    const xml = await this.httpClient.get(request);
-    const parser = new XMLParser({ ignoreAttributes: false });
-    const parsedXml = parser.parse(xml as string);
-    const host = parsedXml["download-info"].host as string;
-    const path = parsedXml["download-info"].path as string;
-    const ts = parsedXml["download-info"].ts as string;
-    const s = parsedXml["download-info"].s as string;
+
+    const parsedXml = await this.httpClient.get(request) as any;
+
+    const downloadInfo = parsedXml["download-info"];
+    if (!downloadInfo) throw new Error("Download info missing in response");
+
+    const host = downloadInfo.host as string;
+    const path = downloadInfo.path as string;
+    const ts = downloadInfo.ts as string;
+    const s = downloadInfo.s as string;
+
     const sign = crypto
       .createHash("md5")
       .update("XGRlBW9FXlekgbPrRHuSiA" + path.slice(1) + s)
       .digest("hex");
+
     const link = `https://${host}/get-mp3/${sign}/${ts}${path}`;
-    if (short) return await shortenLink(link);
-    else return link;
+    return short ? await shortenLink(link) : link;
+  }
+
+  async getTrackDirectLinkNew(trackUrl: string): Promise<string> {
+    return `${trackUrl}`;
+  }
+
+  extractTrackId(url: string): string {
+    // пример: https://music.yandex.ru/album/14457044/track/25063569
+    const match = url.match(/\/track\/(\d+)/)
+    if (!match) throw new Error("Invalid Yandex Music track URL")
+    return match[1]
   }
 
   /**

@@ -78,34 +78,124 @@ export default class WrappedYMApi {
     codec: DownloadTrackCodec,
     quality: DownloadTrackQuality
   ): Promise<DownloadInfo> {
-    const infos = await this.api.getTrackDownloadInfo(this.getTrackId(track));
+    const info = await this.api.getTrackDownloadInfoNew(track as string, quality);
 
-    return infos
-      .filter((i) => i.codec === codec)
-      .sort((a, b) =>
-        quality === "high"
-          ? a.bitrateInKbps - b.bitrateInKbps
-          : b.bitrateInKbps - a.bitrateInKbps
-      )
-      .pop() as DownloadInfo;
+    // новая структура: downloadInfo.url или downloadInfo.urls[0]
+    const downloadUrl = info.downloadInfo?.url || info.downloadInfo?.urls?.[0];
+    if (!downloadUrl) {
+      throw new Error("Download info not found");
+    }
+
+    const downloadInfo: DownloadInfo = {
+      codec,
+      bitrateInKbps: info.downloadInfo.bitrate || 0,
+      downloadInfoUrl: downloadUrl,
+      direct: true,
+      quality: info.downloadInfo.quality as DownloadTrackQuality,
+      gain: info.downloadInfo.gain || false,
+      preview: false
+    };
+
+    return downloadInfo;
   }
+
 
   getMp3DownloadInfo(
     track: TrackId | TrackUrl,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
     return this.getConcreteDownloadInfo(track, DownloadTrackCodec.MP3, quality);
+  }
+
+  getAacDownloadInfo(
+    track: TrackId | TrackUrl,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
+  ): Promise<DownloadInfo> {
+    return this.getConcreteDownloadInfo(track, DownloadTrackCodec.AAC, quality);
+  }
+
+  getFlacDownloadInfo(
+    track: TrackId | TrackUrl,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
+  ): Promise<DownloadInfo> {
+    return this.getConcreteDownloadInfo(
+      track,
+      DownloadTrackCodec.FLAC,
+      quality
+    );
   }
 
   async getMp3DownloadUrl(
     track: TrackId | TrackUrl,
     short: Boolean = false,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High
+    quality: DownloadTrackQuality = DownloadTrackQuality.High,
+  ): Promise<string> {
+    return this.api.getTrackDirectLinkNew(
+      (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl,
+    );
+  }
+
+  async getAacDownloadUrl(
+    track: TrackId | TrackUrl,
+    short: Boolean = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.High,
   ): Promise<string> {
     return this.api.getTrackDirectLink(
-      (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl,
+      (await this.getAacDownloadInfo(track, quality)).downloadInfoUrl,
       short
     );
+  }
+
+  async getFlacDownloadUrl(
+    track: TrackId | TrackUrl,
+    short: Boolean = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.High,
+  ): Promise<string> {
+    return this.api.getTrackDirectLink(
+      (await this.getFlacDownloadInfo(track, quality)).downloadInfoUrl,
+      short
+    );
+  }
+
+  async getBestDownloadUrl(
+    track: TrackId | TrackUrl,
+    short: boolean = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.High
+  ): Promise<string | null> {
+    const codecsPriority: DownloadTrackCodec[] = [
+      DownloadTrackCodec.FLAC,
+      DownloadTrackCodec.AAC,
+      DownloadTrackCodec.MP3
+    ];
+
+    for (const codec of codecsPriority) {
+      try {
+        let info: DownloadInfo | null = null;
+
+        switch (codec) {
+          case DownloadTrackCodec.FLAC:
+            info = await this.getFlacDownloadInfo(track, quality);
+            break;
+          case DownloadTrackCodec.AAC:
+            info = await this.getAacDownloadInfo(track, quality);
+            break;
+          case DownloadTrackCodec.MP3:
+            info = await this.getMp3DownloadInfo(track, quality);
+            break;
+        }
+
+        if (info?.downloadInfoUrl) {
+          // Передаём codec из приоритета, а не info.codec
+          return await this.api.getTrackDirectLink(
+            info.downloadInfoUrl,
+            short
+          );
+        }
+      } catch {
+        continue;
+      }
+    }
+    return null;
   }
 
   getPlaylist(

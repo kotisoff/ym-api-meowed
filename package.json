@@ -1,6 +1,6 @@
 {
-  "name": "ym-api-meowed",
-  "version": "1.3.7",
+  "name": "ym-api-meowed-d2",
+  "version": "1.3.8",
   "description": "A Node.js wrapper for the Yandex.Music API (Unofficial) http://music.yandex.ru",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kotisoff/ym-api-meowed.git"
+    "url": "https://github.com/dirold2/ym-api-meowed-d2.git"
   },
   "keywords": [
     "yandex",
@@ -24,15 +24,22 @@
     "yandex.music"
   ],
   "dependencies": {
-    "axios": "^1.11.0",
-    "fast-xml-parser": "^5.2.5"
+    "@platformatic/undici-cache-memory": "^0.8.4",
+    "axios": "^1.12.2",
+    "fast-xml-parser": "^5.3.0",
+    "http-cookie-agent": "^7.0.2",
+    "lru-cache": "^11.2.2",
+    "tough-cookie": "^6.0.0",
+    "undici": "^7.16.0",
+    "undici-retry": "^6.1.0",
+    "undici-types": "^7.16.0"
   },
   "devDependencies": {
-    "@types/node": "^24.3.1",
+    "@types/node": "^24.7.1",
     "dotenv-cli": "^10.0.0",
     "prettier": "3.6.2",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "build": "tsc",
@@ -56,6 +63,7 @@
     "smoke:station-new": "dotenv -e .env -- tsx example/station-new.ts",
     "smoke:station-tracks": "dotenv -e .env -- tsx example/station-tracks.ts",
     "smoke:create-rotor-session": "dotenv -e .env -- tsx example/create-rotor-session.ts",
-    "smoke:session-tracks": "dotenv -e .env -- tsx example/session-tracks.ts"
+    "smoke:session-tracks": "dotenv -e .env -- tsx example/session-tracks.ts",
+    "smoke:get-tracks-download": "dotenv -e .env -- tsx example/get-tracks-download.ts"
   }
 }

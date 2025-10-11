@@ -452,8 +452,9 @@ export type GetTrackSupplementResponse = {
   videos: Array<Video>;
 };
 
-type AudioCodec = "mp3" | "aac" | string;
+type AudioCodec = "mp3" | "aac" | "flac" | string;
 export type DownloadInfo = {
+  quality: DownloadTrackQuality;
   codec: AudioCodec;
   gain: boolean;
   preview: boolean;
@@ -498,13 +499,16 @@ export type ApiUser = {
 };
 
 export enum DownloadTrackQuality {
+  Lossless = "lossless",
   High = "high",
   Low = "low"
 }
 
 export enum DownloadTrackCodec {
-  MP3 = "mp3",
-  AAC = "aac"
+  FLAC = "flac",
+  AAC = "aac",
+  HEACC = "he-aac",
+  MP3 = "mp3"
 }
 
 export type SearchOptions = {
@@ -758,3 +762,29 @@ export type RotorSessionCreateResponse = {
   acceptedSeeds?: Array<RotorSeed>;
   terminated?: boolean;
 };
+
+export type FileInfoResponse = {
+  file: {
+    downloadUrl: string
+    size?: number
+    type?: string
+    [key: string]: any
+  }
+  [key: string]: any
+}
+
+export type FileInfoResponseNew = {
+  downloadInfo: {
+    trackId: string
+    quality: string
+    codec: string
+    bitrate: number
+    transport: string
+    size: number
+    gain: boolean
+    url: string        // основной URL
+    urls: string[]     // альтернативные ссылки
+    realId: string
+    [key: string]: any
+  }
+}
