@@ -78,6 +78,23 @@ export default class WrappedYMApi {
     codec: DownloadTrackCodec,
     quality: DownloadTrackQuality
   ): Promise<DownloadInfo> {
+    const infos = await this.api.getTrackDownloadInfo(this.getTrackId(track));
+
+    return infos
+      .filter((i) => i.codec === codec)
+      .sort((a, b) =>
+        quality === "high"
+          ? a.bitrateInKbps - b.bitrateInKbps
+          : b.bitrateInKbps - a.bitrateInKbps
+      )
+      .pop() as DownloadInfo;
+  }
+
+  async getConcreteDownloadInfoNew(
+    track: TrackId | TrackUrl,
+    codec: DownloadTrackCodec,
+    quality: DownloadTrackQuality
+  ): Promise<DownloadInfo> {
     const info = await this.api.getTrackDownloadInfoNew(track as string, quality);
 
     // новая структура: downloadInfo.url или downloadInfo.urls[0]
@@ -98,7 +115,6 @@ export default class WrappedYMApi {
 
     return downloadInfo;
   }
-
 
   getMp3DownloadInfo(
     track: TrackId | TrackUrl,
@@ -130,7 +146,7 @@ export default class WrappedYMApi {
     short: Boolean = false,
     quality: DownloadTrackQuality = DownloadTrackQuality.High,
   ): Promise<string> {
-    return this.api.getTrackDirectLinkNew(
+    return this.api.getTrackDirectLink(
       (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl,
     );
   }
