@@ -401,14 +401,7 @@ export default class YMApi {
         visibility
       });
 
-
-    const playlist = await this.httpClient.post(request) as Promise<Playlist>
-
-    console.log(request)
-
-    console.log(playlist);
-
-    return playlist;
+    return await this.httpClient.post(request) as Promise<Playlist>;
   }
 
   /**
@@ -529,7 +522,7 @@ export default class YMApi {
       throw new Error(`No track found for ID ${trackId}`);
     }
 
-    return tracks[0]; // берём первый трек, даже если массив больше одного
+    return tracks[0];
   }
 
   /**
@@ -619,7 +612,6 @@ export default class YMApi {
   }
 
   async getTrackDirectLinkNew(trackUrl: string): Promise<string> {
-    console.log(trackUrl);
     return `${trackUrl}`;
   }
 
