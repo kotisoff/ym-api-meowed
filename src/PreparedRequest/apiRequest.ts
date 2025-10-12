@@ -1,4 +1,4 @@
-import Request from "../Network/Request";
+import { Request } from "../Network";
 import config from "./config";
 
 export default function apiRequest() {

@@ -11,16 +11,20 @@ async function main() {
   const api = new YMApi();
   await api.init({ access_token, uid });
 
+  // Получаем первую партию треков
   const tracks = await api.getStationTracks(`track:29168781`);
-  console.log(tracks.sequence[0].track.title);
+  const firstTrack = tracks.sequence?.[0]?.track;
+  if (!firstTrack) throw new Error("No tracks returned from station");
+  console.log(firstTrack.title);
 
-  const nextNext = await api.getStationTracks(
-    `track:${tracks.sequence[0].track.id}`
-  );
-  console.log("Next batch:", nextNext.sequence[0].track.title);
+  // Получаем следующую партию треков
+  const nextBatch = await api.getStationTracks(`track:${firstTrack.id}`);
+  const nextTrack = nextBatch.sequence?.[0]?.track;
+  if (!nextTrack) throw new Error("No tracks returned in next batch");
+  console.log("Next batch:", nextTrack.title);
 }
 
-main().catch((e) => {
-  console.error(e?.response?.data || e);
+main().catch((e: any) => {
+  console.error(e?.response?.data || e?.message || e);
   process.exit(1);
 });

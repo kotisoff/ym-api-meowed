@@ -1,7 +1,7 @@
-import HttpClient from "./Network/HttpClient";
+import { HttpClientImproved } from "./Network";
 import { clckApiRequest } from "./PreparedRequest";
 
-const httpClient = new HttpClient();
+const httpClient = new HttpClientImproved();
 
 /**
  * GET: clck.ru/--

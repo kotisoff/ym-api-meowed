@@ -1,65 +1,57 @@
-import {
-  authRequest,
-  apiRequest,
-  directLinkRequest
-} from "./PreparedRequest/index";
+import { authRequest, apiRequest, directLinkRequest } from "./PreparedRequest";
 import fallbackConfig from "./PreparedRequest/config";
-import HttpClient from "./Network/HttpClient";
-import { XMLParser } from "fast-xml-parser";
+import { HttpClientImproved } from "./Network";
 import * as crypto from "crypto";
+import { withTimeout, withRetry } from "./utils/timeout";
 import {
-  ApiConfig,
-  ApiInitConfig,
-  InitResponse,
-  GetGenresResponse,
-  SearchResponse,
-  Playlist,
-  GetTrackResponse,
-  Language,
-  GetTrackSupplementResponse,
-  GetTrackDownloadInfoResponse,
-  GetFeedResponse,
-  GetAccountStatusResponse,
-  Track,
-  TrackId,
-  ApiUser,
-  SearchOptions,
-  ConcreteSearchOptions,
-  SearchAllResponse,
-  SearchArtistsResponse,
-  SearchTracksResponse,
-  SearchAlbumsResponse,
-  AlbumId,
-  Album,
-  AlbumWithTracks,
-  FilledArtist,
-  Artist,
-  ArtistId,
-  ArtistTracksResponse,
-  DisOrLikedTracksResponse,
-  ChartType,
-  ChartTracksResponse,
-  NewReleasesResponse,
-  NewPlaylistsResponse,
-  PodcastsResponse,
-  SimilarTracksResponse,
-  StationTracksResponse,
-  StationInfoResponse,
-  AllStationsListResponse,
-  RecomendedStationsListResponse,
-  QueuesResponse,
-  QueueResponse,
-  RotorSessionCreateBody,
-  RotorSessionCreateResponse,
-  DownloadTrackCodec,
+  type ApiConfig,
+  type ApiInitConfig,
+  type InitResponse,
+  type GetGenresResponse,
+  type SearchResponse,
+  type Playlist,
+  type GetTrackResponse,
+  type Language,
+  type GetTrackSupplementResponse,
+  type GetTrackDownloadInfoResponse,
+  type GetFeedResponse,
+  type GetAccountStatusResponse,
+  type Track,
+  type TrackId,
+  type ApiUser,
+  type SearchOptions,
+  type ConcreteSearchOptions,
+  type SearchAllResponse,
+  type SearchArtistsResponse,
+  type SearchTracksResponse,
+  type SearchAlbumsResponse,
+  type AlbumId,
+  type Album,
+  type AlbumWithTracks,
+  type FilledArtist,
+  type Artist,
+  type ArtistId,
+  type ArtistTracksResponse,
+  type DisOrLikedTracksResponse,
+  type ChartType,
+  type ChartTracksResponse,
+  type NewReleasesResponse,
+  type NewPlaylistsResponse,
+  type PodcastsResponse,
+  type SimilarTracksResponse,
+  type StationTracksResponse,
+  type StationInfoResponse,
+  type AllStationsListResponse,
+  type RecomendedStationsListResponse,
+  type QueuesResponse,
+  type QueueResponse,
+  type RotorSessionCreateBody,
+  type RotorSessionCreateResponse,
   DownloadTrackQuality,
-  FileInfoResponse,
-  FileInfoResponseNew
+  type FileInfoResponseNew
 } from "./Types";
-import { HttpClientInterface, ObjectResponse } from "./Types/request";
+import type { HttpClientInterface, ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
-import { request } from 'undici';
-import { Types } from '.';
 
 export default class YMApi {
   private user: ApiUser = {
@@ -69,8 +61,11 @@ export default class YMApi {
     username: ""
   };
 
+  private serverOffsetCache: { value: number; timestamp: number } | null = null;
+  private readonly SERVER_OFFSET_CACHE_TTL = 300000; // 5 minutes
+
   constructor(
-    private httpClient: HttpClientInterface = new HttpClient(),
+    private httpClient: HttpClientInterface = new HttpClientImproved(),
     private config: ApiConfig = fallbackConfig
   ) {}
 
@@ -217,7 +212,7 @@ export default class YMApi {
    * Search artists, tracks, albums.
    * @returns Every {type} with query in it's title.
    */
-  search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+  async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
     const type = !options.type ? "all" : options.type;
     const page = String(!options.page ? 0 : options.page);
     const nococrrect = String(
@@ -237,7 +232,7 @@ export default class YMApi {
       request.addQuery({ pageSize: String(options.pageSize) });
     }
 
-    return this.httpClient.get(request) as Promise<SearchResponse>;
+    return await this.httpClient.get(request) as Promise<SearchResponse>;
   }
 
   /**
@@ -389,20 +384,31 @@ export default class YMApi {
    * Create a new playlist
    * @returns Playlist
    */
-  createPlaylist(
+  async createPlaylist(
     name: string,
     options: { visibility?: "public" | "private" } = {}
   ): Promise<Playlist> {
-    const visibility = !options.visibility ? "private" : options.visibility;
+    if (!name) throw new Error("Playlist name is required");
+
+    const visibility = options.visibility ?? "private"; // default to private
+
     const request = apiRequest()
       .setPath(`/users/${this.user.uid}/playlists/create`)
       .addHeaders(this.getAuthHeader())
+      .addHeaders({ "content-type": "application/x-www-form-urlencoded" })
       .setBodyData({
         title: name,
         visibility
       });
 
-    return this.httpClient.post(request) as Promise<Playlist>;
+
+    const playlist = await this.httpClient.post(request) as Promise<Playlist>
+
+    console.log(request)
+
+    console.log(playlist);
+
+    return playlist;
   }
 
   /**
@@ -451,6 +457,7 @@ export default class YMApi {
         `/users/${this.user.uid}/playlists/${playlistId}/change-relative`
       )
       .addHeaders(this.getAuthHeader())
+      .addHeaders({ "content-type": "application/x-www-form-urlencoded" })
       .setBodyData({
         diff: JSON.stringify([
           {
@@ -502,12 +509,13 @@ export default class YMApi {
    * GET: /tracks/[track_id]
    * @returns an array of playlists with tracks
    */
-  getTrack(trackId: TrackId): Promise<GetTrackResponse> {
+  async getTrack(trackId: TrackId): Promise<GetTrackResponse> {
     const request = apiRequest()
       .setPath(`/tracks/${trackId}`)
-      .addHeaders(this.getAuthHeader());
+      .addHeaders(this.getAuthHeader())
+      .addHeaders({ "content-type": "application/json" })
 
-    return this.httpClient.get(request) as Promise<GetTrackResponse>;
+    return await this.httpClient.get(request) as Promise<GetTrackResponse>;
   }
 
   /**
@@ -516,11 +524,12 @@ export default class YMApi {
    */
   async getSingleTrack(trackId: TrackId): Promise<Track> {
     const tracks = await this.getTrack(trackId);
-    if (tracks.length !== 1) {
-      throw new Error(`More than one result received`);
+
+    if (!tracks || tracks.length === 0) {
+      throw new Error(`No track found for ID ${trackId}`);
     }
 
-    return tracks.pop() as Track;
+    return tracks[0]; // берём первый трек, даже если массив больше одного
   }
 
   /**
@@ -539,71 +548,58 @@ export default class YMApi {
    * GET: /tracks/[track_id]/download-info
    * @returns track download information
    */
-  getTrackDownloadInfo(
+  async getTrackDownloadInfo(
     trackId: TrackId,
-    canUseStreaming: Boolean = true
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless,
+    canUseStreaming = true
   ): Promise<GetTrackDownloadInfoResponse> {
     const ts = Math.floor(Date.now() / 1000);
-
+    const sign = this.generateTrackSignature(ts, String(trackId), quality);
     const request = apiRequest()
       .setPath(`/tracks/${trackId}/download-info`)
       .addHeaders(this.getAuthHeader())
       .addQuery({
         ts: String(ts),
-        can_use_streaming: String(canUseStreaming)
+        can_use_streaming: String(canUseStreaming),
+        sign
       });
-      
-    return this.httpClient.get(
-      request
-    ) as Promise<GetTrackDownloadInfoResponse>;
+
+    return await this.httpClient.get(request) as GetTrackDownloadInfoResponse;
   }
 
   async getTrackDownloadInfoNew(
-    trackId: string,
-    quality: Types.DownloadTrackQuality = Types.DownloadTrackQuality.Lossless
+    trackId: number,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless,
   ): Promise<FileInfoResponseNew> {
-    if (!this.user.token) throw new Error("User token is missing")
-
-    const ts = Math.floor(Date.now() / 1000)
-    const codecs = "flac,aac,he-aac,mp3"
-    const transports = "raw"
-    const secret = "kzqU4XhfCaY6B6JTHODeq5"
-
-    // строим HMAC
-    const hmacString = `${ts}${trackId}losslessflacaache-aacmp3raw`;
-    const hmacSign = crypto.createHmac('sha256', secret)
-      .update(hmacString)
-      .digest();
-    const sign = Buffer.from(hmacSign).toString('base64').slice(0, -1);
-
-    // формируем запрос
+    if (!this.user.token) throw new Error("User token is missing");
+    const offset = await this.getYandexServerOffset();
+    const ts = Math.floor(Date.now() / 1000 + offset);
+    const sign = this.generateTrackSignature(ts, String(trackId), quality);
     const request = apiRequest()
-      .setPath(`/get-file-info`)
+      .setPath("/get-file-info")
       .addHeaders(this.getAuthHeader())
       .addQuery({
         ts: String(ts),
-        trackId,
-        quality: DownloadTrackQuality.Lossless,
-        codecs,
-        transports,
+        trackId: String(trackId),
+        quality,
+        codecs: "flac,aac,he-aac,mp3",
+        transports: "raw",
         sign
-      })
+      });
 
-    return await this.httpClient.get(request) as FileInfoResponseNew
+    return await this.httpClient.get(request) as FileInfoResponseNew;
   }
-
-
 
   /**
    * @returns track direct link
    */
   async getTrackDirectLink(
     trackDownloadUrl: string,
-    short: Boolean = false
+    short = false
   ): Promise<string> {
     const request = directLinkRequest(trackDownloadUrl);
 
-    const parsedXml = await this.httpClient.get(request) as any;
+    const parsedXml = (await this.httpClient.get(request)) as any;
 
     const downloadInfo = parsedXml["download-info"];
     if (!downloadInfo) throw new Error("Download info missing in response");
@@ -623,14 +619,15 @@ export default class YMApi {
   }
 
   async getTrackDirectLinkNew(trackUrl: string): Promise<string> {
+    console.log(trackUrl);
     return `${trackUrl}`;
   }
 
   extractTrackId(url: string): string {
     // пример: https://music.yandex.ru/album/14457044/track/25063569
-    const match = url.match(/\/track\/(\d+)/)
-    if (!match) throw new Error("Invalid Yandex Music track URL")
-    return match[1]
+    const match = url.match(/\/track\/(\d+)/);
+    if (!match) throw new Error("Invalid Yandex Music track URL");
+    return match[1];
   }
 
   /**
@@ -644,7 +641,7 @@ export default class YMApi {
       trackid = track.id;
     } else {
       albumid = (await this.getSingleTrack(track)).albums[0].id;
-      trackid = track;
+      trackid = Number(track);
     }
     return `https://music.yandex.ru/album/${albumid}/track/${trackid}`;
   }
@@ -665,7 +662,7 @@ export default class YMApi {
    * GET: /albums/[album_id]
    * @returns an album
    */
-  getAlbum(albumId: AlbumId, withTracks: boolean = false): Promise<Album> {
+  getAlbum(albumId: AlbumId, withTracks = false): Promise<Album> {
     const request = apiRequest()
       .setPath(`/albums/${albumId}${withTracks ? "/with-tracks" : ""}`)
       .addHeaders(this.getAuthHeader());
@@ -839,7 +836,7 @@ export default class YMApi {
    */
   createRotorSession(
     seeds: Array<string>,
-    includeTracksInResponse: boolean = true
+    includeTracksInResponse = true
   ): Promise<RotorSessionCreateResponse> {
     const body: RotorSessionCreateBody = {
       seeds,
@@ -851,7 +848,6 @@ export default class YMApi {
     const request = apiRequest()
       .setPath(`/rotor/session/new`)
       .addHeaders(this.getAuthHeader())
-      .addHeaders({ "content-type": "application/json" })
       .setBodyData(body as unknown as any);
 
     return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
@@ -878,7 +874,6 @@ export default class YMApi {
     const request = apiRequest()
       .setPath(`/rotor/session/${sessionId}/tracks`)
       .addHeaders(this.getAuthHeader())
-      .addHeaders({ "content-type": "application/json" })
       .setBodyData(body as unknown as any);
 
     return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
@@ -910,5 +905,73 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader());
 
     return this.httpClient.get(request) as Promise<QueueResponse>;
+  }
+
+  /**
+   * Get Yandex server time offset with caching
+   * @param retries Number of retry attempts
+   * @param timeoutMs Timeout in milliseconds
+   * @returns Server time offset in seconds
+   */
+  private async getYandexServerOffset(
+    retries = 3,
+    timeoutMs = 2000
+  ): Promise<number> {
+    if (this.serverOffsetCache) {
+      const age = Date.now() - this.serverOffsetCache.timestamp;
+      if (age < this.SERVER_OFFSET_CACHE_TTL) {
+        return this.serverOffsetCache.value;
+      }
+    }
+
+    const fetchOffset = async (): Promise<number> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const resp = await fetch("https://api.music.yandex.net", {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const dateHeader = resp.headers.get("Date");
+        if (!dateHeader) throw new Error("Date header missing");
+
+        const serverTime = Math.floor(new Date(dateHeader).getTime() / 1000);
+        const localTime = Math.floor(Date.now() / 1000);
+        const offset = serverTime - localTime;
+
+        this.serverOffsetCache = { value: offset, timestamp: Date.now() };
+        return offset;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    try {
+      return await withRetry(fetchOffset, retries);
+    } catch {
+      return 0; // fallback to no offset
+    }
+  }
+
+  /**
+   * Generate signature for track download
+   */
+  private generateTrackSignature(
+    ts: number,
+    trackId: string,
+    quality: string
+  ): string {
+    const codecs = "flacaache-aacmp3";
+    const transports = "raw";
+    const signBase = `${ts}${trackId}${quality}${codecs}${transports}`;
+    const key = "kzqU4XhfCaY6B6JTHODeq5";
+
+    return Buffer.from(
+      crypto.createHmac("sha256", key).update(signBase).digest()
+    )
+      .toString("base64")
+      .replace(/=+$/, "");
   }
 }

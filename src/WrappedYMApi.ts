@@ -1,28 +1,28 @@
 import {
-  UrlExtractorInterface,
-  TrackId,
-  TrackUrl,
-  DownloadInfo,
-  ApiInitConfig,
-  InitResponse,
+  type UrlExtractorInterface,
+  type TrackId,
+  type TrackUrl,
+  type DownloadInfo,
+  type ApiInitConfig,
+  type InitResponse,
   DownloadTrackQuality,
   DownloadTrackCodec,
-  PlaylistId,
-  PlaylistUrl,
-  UserId,
-  UserName,
-  Playlist,
-  Track,
-  AlbumUrl,
-  AlbumId,
-  Album,
-  AlbumWithTracks,
-  ArtistId,
-  ArtistUrl,
-  FilledArtist
+  type PlaylistId,
+  type PlaylistUrl,
+  type UserId,
+  type UserName,
+  type Playlist,
+  type Track,
+  type AlbumUrl,
+  type AlbumId,
+  type Album,
+  type AlbumWithTracks,
+  type ArtistId,
+  type ArtistUrl,
+  type FilledArtist
 } from "./Types";
 import YMApi from "./YMApi";
-import UrlExtractor from "./Network/UrlExtractor";
+import { UrlExtractor } from "./Network";
 
 export default class WrappedYMApi {
   constructor(
@@ -93,23 +93,27 @@ export default class WrappedYMApi {
   async getConcreteDownloadInfoNew(
     track: TrackId | TrackUrl,
     codec: DownloadTrackCodec,
-    quality: DownloadTrackQuality
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
-    const info = await this.api.getTrackDownloadInfoNew(track as string, quality);
+    const info = await this.api.getTrackDownloadInfoNew(
+      this.getTrackId(track),
+      quality
+    );
 
-    // новая структура: downloadInfo.url или downloadInfo.urls[0]
-    const downloadUrl = info.downloadInfo?.url || info.downloadInfo?.urls?.[0];
+    const downloadUrl =
+      info?.downloadInfo?.url || info?.downloadInfo?.urls?.[0];
+
     if (!downloadUrl) {
-      throw new Error("Download info not found");
+      throw new Error(`Download URL not found in response for track ${track}`);
     }
 
     const downloadInfo: DownloadInfo = {
       codec,
-      bitrateInKbps: info.downloadInfo.bitrate || 0,
+      bitrateInKbps: info.downloadInfo?.bitrate || 0,
       downloadInfoUrl: downloadUrl,
       direct: true,
-      quality: info.downloadInfo.quality as DownloadTrackQuality,
-      gain: info.downloadInfo.gain || false,
+      quality: (info.downloadInfo?.quality || quality) as DownloadTrackQuality,
+      gain: info.downloadInfo?.gain || false,
       preview: false
     };
 
@@ -120,6 +124,17 @@ export default class WrappedYMApi {
     track: TrackId | TrackUrl,
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
+    return this.getConcreteDownloadInfoNew(
+      track,
+      DownloadTrackCodec.MP3,
+      quality
+    );
+  }
+
+  getMp3DownloadInfoOld(
+    track: TrackId | TrackUrl,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
+  ): Promise<DownloadInfo> {
     return this.getConcreteDownloadInfo(track, DownloadTrackCodec.MP3, quality);
   }
 
@@ -127,14 +142,18 @@ export default class WrappedYMApi {
     track: TrackId | TrackUrl,
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
-    return this.getConcreteDownloadInfo(track, DownloadTrackCodec.AAC, quality);
+    return this.getConcreteDownloadInfoNew(
+      track,
+      DownloadTrackCodec.AAC,
+      quality
+    );
   }
 
   getFlacDownloadInfo(
     track: TrackId | TrackUrl,
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
-    return this.getConcreteDownloadInfo(
+    return this.getConcreteDownloadInfoNew(
       track,
       DownloadTrackCodec.FLAC,
       quality
@@ -143,40 +162,48 @@ export default class WrappedYMApi {
 
   async getMp3DownloadUrl(
     track: TrackId | TrackUrl,
-    short: Boolean = false,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High,
+    short = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<string> {
     return this.api.getTrackDirectLink(
-      (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl,
+      (await this.getMp3DownloadInfoOld(track, quality)).downloadInfoUrl
+    );
+  }
+
+  async getMp3DownloadUrlNew(
+    track: TrackId | TrackUrl,
+    short = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
+  ): Promise<string> {
+    return this.api.getTrackDirectLinkNew(
+      (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl
     );
   }
 
   async getAacDownloadUrl(
     track: TrackId | TrackUrl,
-    short: Boolean = false,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High,
+    short = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<string> {
-    return this.api.getTrackDirectLink(
-      (await this.getAacDownloadInfo(track, quality)).downloadInfoUrl,
-      short
+    return this.api.getTrackDirectLinkNew(
+      (await this.getAacDownloadInfo(track, quality)).downloadInfoUrl
     );
   }
 
   async getFlacDownloadUrl(
     track: TrackId | TrackUrl,
-    short: Boolean = false,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High,
+    short = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<string> {
-    return this.api.getTrackDirectLink(
-      (await this.getFlacDownloadInfo(track, quality)).downloadInfoUrl,
-      short
+    return this.api.getTrackDirectLinkNew(
+      (await this.getFlacDownloadInfo(track, quality)).downloadInfoUrl
     );
   }
 
   async getBestDownloadUrl(
     track: TrackId | TrackUrl,
-    short: boolean = false,
-    quality: DownloadTrackQuality = DownloadTrackQuality.High
+    short = false,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<string | null> {
     const codecsPriority: DownloadTrackCodec[] = [
       DownloadTrackCodec.FLAC,
@@ -201,11 +228,7 @@ export default class WrappedYMApi {
         }
 
         if (info?.downloadInfoUrl) {
-          // Передаём codec из приоритета, а не info.codec
-          return await this.api.getTrackDirectLink(
-            info.downloadInfoUrl,
-            short
-          );
+          return await this.api.getTrackDirectLink(info.downloadInfoUrl, short);
         }
       } catch {
         continue;
@@ -229,10 +252,7 @@ export default class WrappedYMApi {
     return this.api.getSingleTrack(this.getTrackId(track));
   }
 
-  getAlbum(
-    album: AlbumId | AlbumUrl,
-    withTracks: boolean = false
-  ): Promise<Album> {
+  getAlbum(album: AlbumId | AlbumUrl, withTracks = false): Promise<Album> {
     return this.api.getAlbum(this.getAlbumId(album), withTracks);
   }
 

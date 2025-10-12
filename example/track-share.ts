@@ -2,32 +2,48 @@ import { YMApi, WrappedYMApi } from "../src";
 import config from "./config";
 
 const api = new YMApi();
-const WrappedApi = new WrappedYMApi();
+const wrappedApi = new WrappedYMApi();
 
 (async () => {
   try {
     await api.init(config.user);
-    await WrappedApi.init(config.user);
+    await wrappedApi.init(config.user);
 
-    const trackUrl =
-      "https://music.yandex.ru/album/11246103/track/68070362?utm_source=desktop&utm_medium=copy_link";
-    const trackUrlNew =
-      "https://music.yandex.ru/track/68070362?utm_source=web&utm_medium=copy_link";
+    const urls = [
+      "https://music.yandex.ru/album/11246103/track/68070362?utm_source=desktop&utm_medium=copy_link",
+      "https://music.yandex.ru/track/68070362?utm_source=web&utm_medium=copy_link"
+    ];
 
-    const trackId = 68070362;
-    const trackIdNew = 68070362;
+    const ids = [68070362, 68070362];
 
-    const trackWrapped = await WrappedApi.getTrack(trackUrl);
-    const trackWrappedNew = await WrappedApi.getTrack(trackUrlNew);
-    const track = await api.getTrack(trackId);
-    const trackNew = await api.getTrack(trackIdNew);
-    console.log("WrappedAPI");
-    console.log(trackWrapped.artists[0].name);
-    console.log(trackWrappedNew.artists[0].name);
-    console.log("YMApi");
-    console.log(track[0].artists[0].name);
-    console.log(trackNew[0].artists[0].name);
+    const [wrappedOld, wrappedNew] = await Promise.all(
+      urls.map((url) => wrappedApi.getTrack(url))
+    );
+    const [apiOld, apiNew] = await Promise.all(
+      ids.map((id) => api.getTrack(id))
+    );
+
+    // Проверка наличия артистов
+    const ok =
+      wrappedOld.artists?.length &&
+      wrappedNew.artists?.length &&
+      apiOld[0].artists?.length &&
+      apiNew[0].artists?.length;
+
+    if (ok) {
+      console.log("✔ Tracks fetched successfully");
+      console.log({
+        wrappedOld: wrappedOld.artists[0].name,
+        wrappedNew: wrappedNew.artists[0].name,
+        apiOld: apiOld[0].artists[0].name,
+        apiNew: apiNew[0].artists[0].name
+      });
+      process.exit(0);
+    } else {
+      throw new Error("Missing artist info in one of the tracks");
+    }
   } catch (e: any) {
-    console.log(`api error: ${e?.message ?? String(e)}`);
+    console.error(`❌ API error: ${e?.message ?? String(e)}`);
+    process.exit(1);
   }
 })();

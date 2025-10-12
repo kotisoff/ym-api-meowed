@@ -11,15 +11,26 @@ async function main() {
   const api = new YMApi();
   await api.init({ access_token, uid });
 
+  // Создаём сессию
   const session = await api.createRotorSession(["user:onyourwave"]);
 
+  if (!session.radioSessionId || !session.batchId) {
+    throw new Error("Rotor session response is missing required fields");
+  }
+
+  // Получаем треки сессии
   const tracks = await api.postRotorSessionTracks(session.radioSessionId, {
     batchId: session.batchId
   });
+
+  if (!tracks.sequence?.length) {
+    throw new Error("No tracks returned from rotor session");
+  }
+
   console.log(tracks.sequence[0].track.title);
 }
 
-main().catch((e) => {
+main().catch((e: any) => {
   console.error(e?.response?.data || e);
   process.exit(1);
 });

@@ -14,12 +14,23 @@ async function main() {
   const trackId = 124413086; // ID трека
   const sess = await api.createRotorSession([`track:${trackId}`], true);
 
-  //   const seeds = ["user:onyourwave"];
-  //   const resp = await api.createRotorSession(seeds, true);
-  console.dir(sess, { depth: 2, maxArrayLength: 5, colors: true });
+  // Проверяем реальные поля
+  if (
+    !sess ||
+    !sess.radioSessionId ||
+    !Array.isArray(sess.sequence) ||
+    sess.sequence.length === 0
+  ) {
+    console.error("❌ Rotor session creation failed or empty sequence");
+    process.exitCode = 1;
+  } else {
+    console.log(`✔ Rotor session created: ${sess.radioSessionId}`);
+    console.log(`Tracks returned: ${sess.sequence.length}`);
+    process.exitCode = 0;
+  }
 }
 
 main().catch((e) => {
-  console.error(e?.response?.data || e);
-  process.exit(1);
+  console.error("❌ api error:", e?.response?.data || e?.message || e);
+  process.exitCode = 1;
 });

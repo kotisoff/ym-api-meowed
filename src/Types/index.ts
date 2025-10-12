@@ -765,26 +765,26 @@ export type RotorSessionCreateResponse = {
 
 export type FileInfoResponse = {
   file: {
-    downloadUrl: string
-    size?: number
-    type?: string
-    [key: string]: any
-  }
-  [key: string]: any
-}
+    downloadUrl: string;
+    size?: number;
+    type?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
 
 export type FileInfoResponseNew = {
   downloadInfo: {
-    trackId: string
-    quality: string
-    codec: string
-    bitrate: number
-    transport: string
-    size: number
-    gain: boolean
-    url: string        // основной URL
-    urls: string[]     // альтернативные ссылки
-    realId: string
-    [key: string]: any
+    trackId: string;
+    quality: string;
+    codec: string;
+    bitrate: number;
+    transport: string;
+    size: number;
+    gain: boolean;
+    url: string; // основной URL
+    urls: string[]; // альтернативные ссылки
+    realId: string;
+    [key: string]: any;
   }
-}
+};

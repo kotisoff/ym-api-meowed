@@ -1,5 +1,6 @@
 import WrappedYMApi from "../src/WrappedYMApi";
 import config from "./config";
+
 const wrappedApi = new WrappedYMApi();
 
 (async () => {
@@ -9,25 +10,25 @@ const wrappedApi = new WrappedYMApi();
     const playlist = await wrappedApi.getPlaylist(
       "https://music.yandex.ru/users/music.partners/playlists/1769"
     );
-    // OR
-    // const playlist = await wrappedApi.getPlaylist(
-    //   1769,
-    //   "music.partners"
-    // );
-    if (!playlist.tracks) {
-      throw new Error("missing tracks");
+
+    if (!playlist.tracks?.length) {
+      console.error("❌ Playlist has no tracks");
+      process.exit(1);
     }
+
     const tracks = await Promise.all(
-      playlist.tracks.map(async (track) => ({
-        id: track.track.id,
-        title: `${track.track.title} - ${track.track.artists
-          .map((artist) => artist.name)
-          .join(", ")}`,
-        downloadUrl: await wrappedApi.getMp3DownloadUrl(track.id)
+      playlist.tracks.map(async ({ track, id }) => ({
+        id: track.id,
+        title: `${track.title} - ${track.artists.map((a) => a.name).join(", ")}`,
+        downloadUrl: await wrappedApi.getMp3DownloadUrl(id)
       }))
     );
-    console.log(tracks);
+
+    console.log("✔ Tracks fetched successfully");
+    console.log(tracks.slice(0, 5)); // Для минималистичного вывода показываем только первые 5
+    process.exit(0);
   } catch (e: any) {
-    console.log(`api error: ${e?.message ?? String(e)}`);
+    console.error(`❌ API error: ${e?.message ?? String(e)}`);
+    process.exit(1);
   }
 })();

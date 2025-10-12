@@ -6,54 +6,47 @@ const api = new YMApi();
   try {
     await api.init(config.user);
 
-    const name = "Test Playlist";
-    const options: { visibility: "public" | "private" } = {
+    // Создание плейлиста
+    const playlist = await api.createPlaylist("Test Playlist", {
       visibility: "public"
-    };
-    const playlist = await api.createPlaylist(name, options);
-    console.log("New playlist has been created:");
-    console.log(`Name: ${playlist.title}`);
-    console.log(`Kind: ${playlist.kind}`);
-    console.log(`Visibility: ${playlist.visibility}`);
+    });
+    if (!playlist.kind || playlist.revision == null)
+      throw new Error("Playlist creation failed");
 
+    // Добавление треков
     const tracks = [
       { id: 20599729, albumId: 2347459 },
       { id: 20069589, albumId: 2265364 },
       { id: 15924630, albumId: 1795812 }
     ];
-    const playlistWithTracks = await api.addTracksToPlaylist(
+    const updatedPlaylist = await api.addTracksToPlaylist(
       playlist.kind,
       tracks,
       playlist.revision
     );
-    console.log(
-      `\nAdded ${playlistWithTracks.trackCount} tracks to the playlist`
-    );
+    if ((updatedPlaylist.trackCount ?? 0) !== tracks.length)
+      throw new Error("Tracks were not added");
 
-    const getPlaylistsOptions = { "rich-tracks": true };
-    const playlists = await api.getPlaylists(
-      [playlistWithTracks.kind],
-      null,
-      getPlaylistsOptions
-    );
-    const firstPlaylist = playlists.shift();
-    if (!firstPlaylist) {
-      throw new Error("Something went wrong, first playlist is empty");
-    }
-    firstPlaylist.tracks?.forEach((item) => {
-      console.log(`${item.track.title} - ${item.track.artists[0].name}`);
+    // Проверка треков
+    const playlists = await api.getPlaylists([playlist.kind], undefined, {
+      "rich-tracks": true
     });
+    const firstPlaylist = playlists[0];
+    if (!firstPlaylist?.tracks?.length)
+      throw new Error("Tracks missing after fetch");
 
+    // Очистка
     await api.removeTracksFromPlaylist(
       playlist.kind,
       tracks,
-      firstPlaylist.revision
+      firstPlaylist.revision!
     );
-    console.log("\nAll added tracks removed from the playlist.");
-
     await api.removePlaylist(playlist.kind);
-    console.log("The playlist has been deleted.");
-  } catch (e: any) {
-    console.log(`api error: ${e?.message ?? String(e)}`);
+
+    console.log("✔ Playlist smoke test passed");
+    process.exitCode = 0;
+  } catch (err: any) {
+    console.error("❌ Playlist smoke test failed:", err.message ?? err);
+    process.exitCode = 1;
   }
 })();
