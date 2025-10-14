@@ -1,4 +1,4 @@
-import { HttpClientImproved, HttpClient } from "./Network";
+import { HttpClientImproved } from "./Network";
 import { clckApiRequest } from "./PreparedRequest";
 import { HttpClientInterface } from "./Types/request";
 
