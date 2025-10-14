@@ -52,6 +52,7 @@ import {
 } from "./Types";
 import type { HttpClientInterface, ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
+import { XMLParser } from "fast-xml-parser";
 
 export default class YMApi {
   private user: ApiUser = {
@@ -212,7 +213,10 @@ export default class YMApi {
    * Search artists, tracks, albums.
    * @returns Every {type} with query in it's title.
    */
-  async search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+  async search(
+    query: string,
+    options: SearchOptions = {}
+  ): Promise<SearchResponse> {
     const type = !options.type ? "all" : options.type;
     const page = String(!options.page ? 0 : options.page);
     const nococrrect = String(
@@ -232,7 +236,7 @@ export default class YMApi {
       request.addQuery({ pageSize: String(options.pageSize) });
     }
 
-    return await this.httpClient.get(request) as Promise<SearchResponse>;
+    return (await this.httpClient.get(request)) as Promise<SearchResponse>;
   }
 
   /**
@@ -401,7 +405,7 @@ export default class YMApi {
         visibility
       });
 
-    return await this.httpClient.post(request) as Promise<Playlist>;
+    return (await this.httpClient.post(request)) as Promise<Playlist>;
   }
 
   /**
@@ -506,9 +510,9 @@ export default class YMApi {
     const request = apiRequest()
       .setPath(`/tracks/${trackId}`)
       .addHeaders(this.getAuthHeader())
-      .addHeaders({ "content-type": "application/json" })
+      .addHeaders({ "content-type": "application/json" });
 
-    return await this.httpClient.get(request) as Promise<GetTrackResponse>;
+    return (await this.httpClient.get(request)) as Promise<GetTrackResponse>;
   }
 
   /**
@@ -557,12 +561,12 @@ export default class YMApi {
         sign
       });
 
-    return await this.httpClient.get(request) as GetTrackDownloadInfoResponse;
+    return (await this.httpClient.get(request)) as GetTrackDownloadInfoResponse;
   }
 
   async getTrackDownloadInfoNew(
     trackId: number,
-    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless,
+    quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<FileInfoResponseNew> {
     if (!this.user.token) throw new Error("User token is missing");
     const offset = await this.getYandexServerOffset();
@@ -580,7 +584,7 @@ export default class YMApi {
         sign
       });
 
-    return await this.httpClient.get(request) as FileInfoResponseNew;
+    return (await this.httpClient.get(request)) as FileInfoResponseNew;
   }
 
   /**
@@ -591,10 +595,14 @@ export default class YMApi {
     short = false
   ): Promise<string> {
     const request = directLinkRequest(trackDownloadUrl);
-
-    const parsedXml = (await this.httpClient.get(request)) as any;
-
-    const downloadInfo = parsedXml["download-info"];
+    const rawResponse = (await this.httpClient.get(request)) as any;
+    let parsed: any;
+    if (typeof rawResponse === "string" && rawResponse.trim().startsWith("<")) {
+      parsed = new XMLParser({ ignoreAttributes: false }).parse(rawResponse);
+    } else {
+      parsed = rawResponse;
+    }
+    const downloadInfo = parsed["download-info"];
     if (!downloadInfo) throw new Error("Download info missing in response");
 
     const host = downloadInfo.host as string;

@@ -27,7 +27,9 @@ const uid = Number(process.env.YM_UID);
       return;
     }
 
-    console.log(`✔ Track URL(s) fetched successfully: ${downloadInfo.length} variant(s)`);
+    console.log(
+      `✔ Track URL(s) fetched successfully: ${downloadInfo.length} variant(s)`
+    );
 
     downloadInfo.forEach((info, idx) => {
       console.log(`\nVariant #${idx + 1}:`);

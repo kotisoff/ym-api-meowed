@@ -786,5 +786,5 @@ export type FileInfoResponseNew = {
     urls: string[]; // альтернативные ссылки
     realId: string;
     [key: string]: any;
-  }
+  };
 };
