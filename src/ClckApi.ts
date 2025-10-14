@@ -2,7 +2,7 @@ import { HttpClientImproved, HttpClient } from "./Network";
 import { clckApiRequest } from "./PreparedRequest";
 import { HttpClientInterface } from "./Types/request";
 
-const defaultClient: HttpClientInterface = new HttpClient();
+const defaultClient: HttpClientInterface = new HttpClientImproved();
 
 /**
  * GET: clck.ru/--

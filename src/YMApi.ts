@@ -66,7 +66,7 @@ export default class YMApi {
   private readonly SERVER_OFFSET_CACHE_TTL = 300000; // 5 minutes
 
   constructor(
-    private httpClient: HttpClientInterface = new HttpClient(),
+    private httpClient: HttpClientInterface = new HttpClientImproved(),
     private config: ApiConfig = fallbackConfig
   ) {}
 
