@@ -5,7 +5,11 @@ import * as zlib from "zlib";
 import { promisify } from "util";
 import { XMLParser } from "fast-xml-parser";
 import * as querystring from "querystring";
-import type { HttpClientInterface, RequestInterface } from "../../Types/request";
+import type {
+  HttpClientInterface,
+  RequestInterface,
+  Response
+} from "../../Types/request";
 import { CacheManager } from "./CacheManager";
 import { QueueManager } from "./QueueManager";
 import { RateLimiter } from "./RateLimiter";
@@ -22,7 +26,7 @@ interface RetryOptions {
   jitter: boolean;
 }
 
-export class HttpClientImproved implements HttpClientInterface {
+export default class HttpClientImproved implements HttpClientInterface {
   private cookieJar = new CookieJar();
   private agent = new CookieAgent({
     cookies: { jar: this.cookieJar },
@@ -64,19 +68,33 @@ export class HttpClientImproved implements HttpClientInterface {
   private async decompress(buf: Buffer, enc?: string) {
     if (!enc) return buf.toString("utf-8");
     switch (enc.toLowerCase()) {
-      case "gzip": return (await gunzip(buf)).toString("utf-8");
-      case "deflate": return (await inflate(buf)).toString("utf-8");
-      case "br": return (await brotliDecompress(buf)).toString("utf-8");
-      default: return buf.toString("utf-8");
+      case "gzip":
+        return (await gunzip(buf)).toString("utf-8");
+      case "deflate":
+        return (await inflate(buf)).toString("utf-8");
+      case "br":
+        return (await brotliDecompress(buf)).toString("utf-8");
+      default:
+        return buf.toString("utf-8");
     }
   }
 
-  private async sendWithRetry(method: string, url: string, headers: Record<string, string>, body?: string | Buffer) {
+  private async sendWithRetry(
+    method: string,
+    url: string,
+    headers: Record<string, string>,
+    body?: string | Buffer
+  ) {
     let lastError: any;
     for (let i = 0; i <= this.retryOptions.maxRetries; i++) {
       try {
         await this.limiter.wait();
-        const res = await request(url, { method, headers, body, dispatcher: this.agent });
+        const res = await request(url, {
+          method,
+          headers,
+          body,
+          dispatcher: this.agent
+        });
         const buf = Buffer.from(await res.body.arrayBuffer());
         if (this.retryOptions.retryStatusCodes.includes(res.statusCode)) {
           await this.sleep(this.calcDelay(i));
@@ -85,30 +103,45 @@ export class HttpClientImproved implements HttpClientInterface {
         return { status: res.statusCode, headers: res.headers, body: buf };
       } catch (err) {
         lastError = err;
-        if (i < this.retryOptions.maxRetries) await this.sleep(this.calcDelay(i));
+        if (i < this.retryOptions.maxRetries)
+          await this.sleep(this.calcDelay(i));
       }
     }
     throw lastError;
   }
 
   private calcDelay(attempt: number) {
-    const base = Math.min(this.retryOptions.baseDelay * 2 ** attempt, this.retryOptions.maxDelay);
-    return this.retryOptions.jitter ? base * (0.75 + Math.random() * 0.5) : base;
+    const base = Math.min(
+      this.retryOptions.baseDelay * 2 ** attempt,
+      this.retryOptions.maxDelay
+    );
+    return this.retryOptions.jitter
+      ? base * (0.75 + Math.random() * 0.5)
+      : base;
   }
 
   private sleep(ms: number) {
-    return new Promise(r => setTimeout(r, ms));
+    return new Promise((r) => setTimeout(r, ms));
   }
 
   private async parseResponse(res: any) {
-    const text = await this.decompress(res.body, res.headers["content-encoding"]);
+    const text = await this.decompress(
+      res.body,
+      res.headers["content-encoding"]
+    );
     const type = res.headers["content-type"];
-    if (type?.includes("json")) return JSON.parse(text).result ?? JSON.parse(text);
-    if (type?.includes("xml") || text.startsWith("<")) return new XMLParser({ ignoreAttributes: false }).parse(text);
+    if (type?.includes("json"))
+      return JSON.parse(text).result ?? JSON.parse(text);
+    if (type?.includes("xml") || text.startsWith("<"))
+      return new XMLParser({ ignoreAttributes: false }).parse(text);
     return text;
   }
 
-  private async request(method: string, req: RequestInterface, useCache = true) {
+  private async request(
+    method: string,
+    req: RequestInterface,
+    useCache = true
+  ) {
     const url = req.getURL();
     const rawBody = req.getBodyData();
     const headers = { ...this.defaultHeaders, ...req.getHeaders() };
@@ -135,21 +168,33 @@ export class HttpClientImproved implements HttpClientInterface {
 
     if (this.inflight.has(key)) return this.inflight.get(key)!;
 
-    const promise = this.queue.enqueue(async () => {
-      const raw = await this.sendWithRetry(method, url, headers, body);
-      const parsed = await this.parseResponse(raw);
-      if (method === "GET" && useCache) this.cache.set(key, parsed);
-      return parsed;
-    }).finally(() => this.inflight.delete(key));
+    const promise = this.queue
+      .enqueue(async () => {
+        const raw = await this.sendWithRetry(method, url, headers, body);
+        const parsed = await this.parseResponse(raw);
+        if (method === "GET" && useCache) this.cache.set(key, parsed);
+        return parsed;
+      })
+      .finally(() => this.inflight.delete(key));
 
     this.inflight.set(key, promise);
     return promise;
   }
 
-  get(req: RequestInterface) { return this.request("GET", req); }
-  post(req: RequestInterface) { return this.request("POST", req, false); }
-  put(req: RequestInterface) { return this.request("PUT", req, false); }
-  delete(req: RequestInterface) { return this.request("DELETE", req, false); }
+  get(req: RequestInterface) {
+    return this.request("GET", req);
+  }
+  post(req: RequestInterface) {
+    return this.request("POST", req, false);
+  }
+  put(req: RequestInterface) {
+    return this.request("PUT", req, false);
+  }
+  delete(req: RequestInterface) {
+    return this.request("DELETE", req, false);
+  }
 
-  clearCache() { this.cache.clear(); }
+  clearCache() {
+    this.cache.clear();
+  }
 }
