@@ -22,7 +22,7 @@ interface RetryOptions {
   jitter: boolean;
 }
 
-export class HttpClientImproved implements HttpClientInterface {
+export default class HttpClientImproved implements HttpClientInterface {
   private cookieJar = new CookieJar();
   private agent = new CookieAgent({
     cookies: { jar: this.cookieJar },

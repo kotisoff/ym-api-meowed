@@ -120,7 +120,7 @@ export default class WrappedYMApi {
     return downloadInfo;
   }
 
-  getMp3DownloadInfo(
+  getMp3DownloadInfoNew(
     track: TrackId | TrackUrl,
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
@@ -131,7 +131,7 @@ export default class WrappedYMApi {
     );
   }
 
-  getMp3DownloadInfoOld(
+  getMp3DownloadInfo(
     track: TrackId | TrackUrl,
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<DownloadInfo> {
@@ -166,7 +166,7 @@ export default class WrappedYMApi {
     quality: DownloadTrackQuality = DownloadTrackQuality.Lossless
   ): Promise<string> {
     return this.api.getTrackDirectLink(
-      (await this.getMp3DownloadInfoOld(track, quality)).downloadInfoUrl
+      (await this.getMp3DownloadInfo(track, quality)).downloadInfoUrl
     );
   }
 

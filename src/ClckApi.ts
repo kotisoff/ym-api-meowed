@@ -1,14 +1,19 @@
-import { HttpClientImproved } from "./Network";
+import { HttpClientImproved, HttpClient } from "./Network";
 import { clckApiRequest } from "./PreparedRequest";
+import { HttpClientInterface } from './Types/request';
 
-const httpClient = new HttpClientImproved();
+const defaultClient: HttpClientInterface = new HttpClient();
 
 /**
  * GET: clck.ru/--
- * @param URL Url to something
- * @returns clck.ru shortened link
+ * @param URL Url to shorten
+ * @param client Optional custom HTTP client
+ * @returns Promise<string> - shortened link
  */
-export default function shortenLink(URL: string): Promise<string> {
+export default function shortenLink(
+  URL: string,
+  client: HttpClientInterface = defaultClient,
+): Promise<string> {
   const request = clckApiRequest().setPath("/--").addQuery({ url: URL });
-  return httpClient.get(request) as Promise<string>;
+  return client.get(request) as Promise<string>;
 }

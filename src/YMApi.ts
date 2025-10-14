@@ -1,6 +1,6 @@
 import { authRequest, apiRequest, directLinkRequest } from "./PreparedRequest";
 import fallbackConfig from "./PreparedRequest/config";
-import { HttpClientImproved } from "./Network";
+import { HttpClientImproved, HttpClient } from "./Network";
 import * as crypto from "crypto";
 import { withTimeout, withRetry } from "./utils/timeout";
 import {
@@ -65,7 +65,7 @@ export default class YMApi {
   private readonly SERVER_OFFSET_CACHE_TTL = 300000; // 5 minutes
 
   constructor(
-    private httpClient: HttpClientInterface = new HttpClientImproved(),
+    private httpClient: HttpClientInterface = new HttpClient(),
     private config: ApiConfig = fallbackConfig
   ) {}
 
