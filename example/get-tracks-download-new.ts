@@ -20,7 +20,7 @@ const uid = Number(process.env.YM_UID);
       trackId,
       Types.DownloadTrackQuality.Lossless
     );
-
+    
     const info = track.downloadInfo;
 
     if (!info || !info.url) {

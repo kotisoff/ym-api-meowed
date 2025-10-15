@@ -27,6 +27,8 @@ const api = new YMApi();
     const supplement = await api.getTrackSupplement(trackId);
     const downloadInfo = await api.getTrackDownloadInfo(trackId);
 
+    console.log(track)
+
     const mp3Tracks = downloadInfo
       .filter((r) => r.codec === "mp3")
       .sort((a, b) => b.bitrateInKbps - a.bitrateInKbps);

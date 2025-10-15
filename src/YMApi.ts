@@ -1,8 +1,7 @@
 import { authRequest, apiRequest, directLinkRequest } from "./PreparedRequest";
 import fallbackConfig from "./PreparedRequest/config";
-import { HttpClientImproved } from "./Network";
 import * as crypto from "crypto";
-import { withTimeout, withRetry } from "./utils/timeout";
+import { withRetry } from "./utils/timeout";
 import {
   type ApiConfig,
   type ApiInitConfig,
@@ -50,9 +49,10 @@ import {
   DownloadTrackQuality,
   type FileInfoResponseNew
 } from "./Types";
-import type { HttpClientInterface, ObjectResponse } from "./Types/request";
+import type { ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
 import { XMLParser } from "fast-xml-parser";
+import { HttpClientImproved, RequestInterface, ResponseType } from "hyperttp";
 
 export default class YMApi {
   private user: ApiUser = {
@@ -63,10 +63,16 @@ export default class YMApi {
   };
 
   private serverOffsetCache: { value: number; timestamp: number } | null = null;
-  private readonly SERVER_OFFSET_CACHE_TTL = 300000; // 5 minutes
+  private readonly SERVER_OFFSET_CACHE_TTL = 300000;
 
   constructor(
-    private httpClient: HttpClientInterface = new HttpClientImproved(),
+    private httpClient = new HttpClientImproved({
+      timeout: 10000,
+      maxRetries: 2,
+      maxConcurrent: 20,
+      cacheTTL: 60_000,
+      userAgent: "YandexMusicDesktopAppWindows/5.13.2",
+    }),
     private config: ApiConfig = fallbackConfig
   ) {}
 
@@ -81,6 +87,16 @@ export default class YMApi {
       "X-Yandex-Music-Device":
         "os=unknown; os_version=unknown; manufacturer=unknown; model=unknown; clid=; device_id=unknown; uuid=unknown"
     };
+  }
+
+  async get<T>(request: RequestInterface, responseType?: ResponseType): Promise<T> {
+    const response = await this.httpClient.get<{ invocationInfo: any; result: T }>(request, responseType);
+    return response.result;
+  }
+
+  async post<T>(request: RequestInterface, responseType?: ResponseType): Promise<T> {
+    const response = await this.httpClient.post<{ invocationInfo: any; result: T }>(request, responseType);
+    return response.result
   }
 
   /**
@@ -106,7 +122,7 @@ export default class YMApi {
     this.user.username = config.username;
     this.user.password = config.password;
 
-    const data = (await this.httpClient.get(
+    const data = (await this.get(
       authRequest().setPath("/token").setQuery({
         grant_type: "password",
         username: this.user.username,
@@ -131,7 +147,7 @@ export default class YMApi {
       .setPath("/account/status")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<GetAccountStatusResponse>;
+    return this.get(request) as Promise<GetAccountStatusResponse>;
   }
 
   /**
@@ -143,7 +159,7 @@ export default class YMApi {
       .setPath("/feed")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<GetFeedResponse>;
+    return this.get(request) as Promise<GetFeedResponse>;
   }
 
   /**
@@ -157,7 +173,7 @@ export default class YMApi {
       .setPath(`/landing3/chart/${ChartType}`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<ChartTracksResponse>;
+    return this.get(request) as Promise<ChartTracksResponse>;
   }
 
   /**
@@ -169,7 +185,7 @@ export default class YMApi {
       .setPath("/landing3/new-playlists")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<NewPlaylistsResponse>;
+    return this.get(request) as Promise<NewPlaylistsResponse>;
   }
 
   /**
@@ -181,7 +197,7 @@ export default class YMApi {
       .setPath("/landing3/new-releases")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<NewReleasesResponse>;
+    return this.get(request) as Promise<NewReleasesResponse>;
   }
 
   /**
@@ -193,7 +209,7 @@ export default class YMApi {
       .setPath("/landing3/podcasts")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<PodcastsResponse>;
+    return this.get(request) as Promise<PodcastsResponse>;
   }
 
   /**
@@ -205,7 +221,7 @@ export default class YMApi {
       .setPath("/genres")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<GetGenresResponse>;
+    return this.get(request) as Promise<GetGenresResponse>;
   }
 
   /**
@@ -236,7 +252,9 @@ export default class YMApi {
       request.addQuery({ pageSize: String(options.pageSize) });
     }
 
-    return (await this.httpClient.get(request)) as Promise<SearchResponse>;
+    const response = await this.get(request)
+
+    return response as Promise<SearchResponse>;
   }
 
   /**
@@ -311,7 +329,7 @@ export default class YMApi {
       .setPath(`/users/${uid}/playlists/list`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<Array<Playlist>>;
+    return this.get(request) as Promise<Array<Playlist>>;
   }
 
   /**
@@ -343,7 +361,7 @@ export default class YMApi {
         .addHeaders(this.getAuthHeader())
         .addQuery({ richTracks: "true" });
     }
-    return this.httpClient.get(request) as Promise<Playlist>;
+    return this.get(request) as Promise<Playlist>;
   }
 
   /**
@@ -380,7 +398,7 @@ export default class YMApi {
         "rich-tracks": richTracks
       });
 
-    return this.httpClient.get(request) as Promise<Array<Playlist>>;
+    return this.get(request) as Promise<Array<Playlist>>;
   }
 
   /**
@@ -405,7 +423,9 @@ export default class YMApi {
         visibility
       });
 
-    return (await this.httpClient.post(request)) as Promise<Playlist>;
+    const responce = await this.post(request)
+
+    return responce as Promise<Playlist>;
   }
 
   /**
@@ -418,7 +438,7 @@ export default class YMApi {
       .setPath(`/users/${this.user.uid}/playlists/${playlistId}/delete`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.post(request) as Promise<"ok" | string>;
+    return this.post(request) as Promise<"ok" | string>;
   }
 
   /**
@@ -434,7 +454,7 @@ export default class YMApi {
         value: name
       });
 
-    return this.httpClient.post(request) as Promise<Playlist>;
+    return this.post(request) as Promise<Playlist>;
   }
 
   /**
@@ -466,7 +486,7 @@ export default class YMApi {
         revision: String(revision)
       });
 
-    return this.httpClient.post(request) as Promise<Playlist>;
+    return this.post(request) as Promise<Playlist>;
   }
 
   /**
@@ -499,7 +519,7 @@ export default class YMApi {
         revision: String(revision)
       });
 
-    return this.httpClient.post(request) as Promise<Playlist>;
+    return this.post(request) as Promise<Playlist>;
   }
 
   /**
@@ -512,7 +532,9 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader())
       .addHeaders({ "content-type": "application/json" });
 
-    return (await this.httpClient.get(request)) as Promise<GetTrackResponse>;
+    const responce = await this.get(request)
+
+    return responce as Promise<GetTrackResponse>;
   }
 
   /**
@@ -538,7 +560,7 @@ export default class YMApi {
       .setPath(`/tracks/${trackId}/supplement`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<GetTrackSupplementResponse>;
+    return this.get(request) as Promise<GetTrackSupplementResponse>;
   }
 
   /**
@@ -561,7 +583,7 @@ export default class YMApi {
         sign
       });
 
-    return (await this.httpClient.get(request)) as GetTrackDownloadInfoResponse;
+    return (await this.get(request)) as GetTrackDownloadInfoResponse;
   }
 
   async getTrackDownloadInfoNew(
@@ -584,7 +606,7 @@ export default class YMApi {
         sign
       });
 
-    return (await this.httpClient.get(request)) as FileInfoResponseNew;
+    return (await this.get(request)) as FileInfoResponseNew;
   }
 
   /**
@@ -595,14 +617,8 @@ export default class YMApi {
     short = false
   ): Promise<string> {
     const request = directLinkRequest(trackDownloadUrl);
-    const rawResponse = (await this.httpClient.get(request)) as any;
-    let parsed: any;
-    if (typeof rawResponse === "string" && rawResponse.trim().startsWith("<")) {
-      parsed = new XMLParser({ ignoreAttributes: false }).parse(rawResponse);
-    } else {
-      parsed = rawResponse;
-    }
-    const downloadInfo = parsed["download-info"];
+    const rawResponse = (await this.httpClient.get(request, "xml")) as any;
+    const downloadInfo = rawResponse["download-info"];
     if (!downloadInfo) throw new Error("Download info missing in response");
 
     const host = downloadInfo.host as string;
@@ -655,24 +671,27 @@ export default class YMApi {
       .setPath(`/tracks/${trackId}/similar`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<SimilarTracksResponse>;
+    return this.get(request) as Promise<SimilarTracksResponse>;
   }
 
   /**
    * GET: /albums/[album_id]
    * @returns an album
    */
-  getAlbum(albumId: AlbumId, withTracks = false): Promise<Album> {
+  async getAlbum(albumId: AlbumId, withTracks = false): Promise<Album> {
     const request = apiRequest()
       .setPath(`/albums/${albumId}${withTracks ? "/with-tracks" : ""}`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<Album>;
+    const response = this.get(request)
+
+    return await response as Promise<Album>;
   }
 
   getAlbumWithTracks(albumId: AlbumId): Promise<AlbumWithTracks> {
     return this.getAlbum(albumId, true) as Promise<AlbumWithTracks>;
   }
+
 
   /**
    * GET: /albums
@@ -684,7 +703,7 @@ export default class YMApi {
       .setBodyData({ albumIds: albumIds.join() })
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.post(request) as Promise<Array<Album>>;
+    return this.post(request) as Promise<Array<Album>>;
   }
 
   /**
@@ -696,7 +715,7 @@ export default class YMApi {
       .setPath(`/artists/${artistId}`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<FilledArtist>;
+    return this.get(request) as Promise<FilledArtist>;
   }
 
   /**
@@ -709,7 +728,7 @@ export default class YMApi {
       .setBodyData({ artistIds: artistIds.join() })
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.post(request) as Promise<Array<Artist>>;
+    return this.post(request) as Promise<Array<Artist>>;
   }
 
   /**
@@ -732,7 +751,7 @@ export default class YMApi {
       request.addQuery({ pageSize: String(options.pageSize) });
     }
 
-    return this.httpClient.get(request) as Promise<ArtistTracksResponse>;
+    return this.get(request) as Promise<ArtistTracksResponse>;
   }
 
   /**
@@ -749,7 +768,7 @@ export default class YMApi {
       .setPath(`/users/${uid}/likes/tracks`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<DisOrLikedTracksResponse>;
+    return this.get(request) as Promise<DisOrLikedTracksResponse>;
   }
 
   /**
@@ -766,7 +785,7 @@ export default class YMApi {
       .setPath(`/users/${uid}/dislikes/tracks`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<DisOrLikedTracksResponse>;
+    return this.get(request) as Promise<DisOrLikedTracksResponse>;
   }
 
   /**
@@ -780,7 +799,7 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader())
       .setQuery(language ? { language } : {});
 
-    return this.httpClient.get(request) as Promise<AllStationsListResponse>;
+    return this.get(request) as Promise<AllStationsListResponse>;
   }
 
   /**
@@ -793,7 +812,7 @@ export default class YMApi {
       .setPath("/rotor/stations/dashboard")
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(
+    return this.get(
       request
     ) as Promise<RecomendedStationsListResponse>;
   }
@@ -813,7 +832,7 @@ export default class YMApi {
       .setPath(`/rotor/station/${stationId}/tracks`)
       .addHeaders(this.getAuthHeader())
       .addQuery(queue ? { queue } : {});
-    return this.httpClient.get(request) as Promise<StationTracksResponse>;
+    return this.get(request) as Promise<StationTracksResponse>;
   }
 
   /**
@@ -826,7 +845,7 @@ export default class YMApi {
       .setPath(`/rotor/station/${stationId}/info`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<StationInfoResponse>;
+    return this.get(request) as Promise<StationInfoResponse>;
   }
 
   /**
@@ -850,7 +869,9 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader())
       .setBodyData(body as unknown as any);
 
-    return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
+    const response = this.post(request)
+
+    return this.post(request) as Promise<RotorSessionCreateResponse>;
   }
 
   /**
@@ -876,7 +897,7 @@ export default class YMApi {
       .addHeaders(this.getAuthHeader())
       .setBodyData(body as unknown as any);
 
-    return this.httpClient.post(request) as Promise<RotorSessionCreateResponse>;
+    return this.post(request) as Promise<RotorSessionCreateResponse>;
   }
 
   /**
@@ -890,7 +911,7 @@ export default class YMApi {
       .addHeaders(this.getFakeDeviceHeader())
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<QueuesResponse>;
+    return this.get(request) as Promise<QueuesResponse>;
   }
 
   /**
@@ -904,7 +925,7 @@ export default class YMApi {
       .setPath(`/queues/${queueId}`)
       .addHeaders(this.getAuthHeader());
 
-    return this.httpClient.get(request) as Promise<QueueResponse>;
+    return this.get(request) as Promise<QueueResponse>;
   }
 
   /**

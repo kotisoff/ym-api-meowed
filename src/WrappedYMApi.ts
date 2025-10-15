@@ -1,5 +1,5 @@
+import { HttpClientImproved, UrlExtractor } from "hyperttp";
 import {
-  type UrlExtractorInterface,
   type TrackId,
   type TrackUrl,
   type DownloadInfo,
@@ -22,44 +22,84 @@ import {
   type FilledArtist
 } from "./Types";
 import YMApi from "./YMApi";
-import { UrlExtractor } from "./Network";
 
 export default class WrappedYMApi {
-  constructor(
-    private api: YMApi = new YMApi(),
-    private urlExtractor: UrlExtractorInterface = new UrlExtractor()
-  ) {}
+  private client: HttpClientImproved;
+  private urlExtractor: UrlExtractor;
 
+  constructor(private api: YMApi = new YMApi()) {
+    this.client = new HttpClientImproved({ maxRetries: 3, cacheTTL: 300000 });
+    this.urlExtractor = new UrlExtractor();
+    this.urlExtractor.registerPlatform("yandex", [
+      {
+        entity: "track",
+        regex: /music\.yandex\.ru\/track\/(?<id>\d+)/,
+        groupNames: ["id"]
+      },
+      {
+        entity: "track",
+        regex: /music\.yandex\.ru\/album\/(?<album>\d+)\/track\/(?<id>\d+)/,
+        groupNames: ["album", "id"]
+      },
+      {
+        entity: "album",
+        regex: /music\.yandex\.ru\/album\/(?<id>\d+)/,
+        groupNames: ["id"]
+      },
+      {
+        entity: "artist",
+        regex: /music\.yandex\.ru\/artist\/(?<id>\d+)/,
+        groupNames: ["id"]
+      },
+      {
+        entity: "playlist",
+        regex:
+          /music\.yandex\.ru\/users\/(?<user>[\w\d\-_.]+)\/playlists\/(?<id>\d+)/,
+        groupNames: ["id", "user"]
+      },
+      {
+        entity: "playlist",
+        regex: /music\.yandex\.ru\/playlists?\/(?<uid>(?:ar\.)?[A-Za-z0-9-]+)/,
+        groupNames: ["uid"]
+      }
+    ]);
+  }
+
+  /** Initializes the YMApi instance */
   init(config: ApiInitConfig): Promise<InitResponse> {
     return this.api.init(config);
   }
 
+  /** Returns the underlying YMApi instance */
   getApi(): YMApi {
     return this.api;
   }
 
   private getTrackId(track: TrackUrl | TrackId): TrackId {
-    if (typeof track === "string") {
-      return this.urlExtractor.extractTrackId(track);
-    } else {
-      return track;
-    }
+    if (typeof track !== "string") return track;
+
+    const extracted = this.urlExtractor.extractId<number>(track, "track", "yandex");
+
+    return (
+      extracted.id ??
+      extracted.trackId ??
+      (() => {
+        throw new Error(`Не удалось извлечь trackId из ссылки: ${track}`);
+      })()
+    );
   }
 
+
   private getAlbumId(album: AlbumId | AlbumUrl): AlbumId {
-    if (typeof album === "string") {
-      return this.urlExtractor.extractAlbumId(album);
-    } else {
-      return album;
-    }
+    return typeof album === "string"
+      ? this.urlExtractor.extractId<number>(`${album}`, "album", "yandex").id
+      : album;
   }
 
   private getArtistId(artist: ArtistId | ArtistUrl): ArtistId {
-    if (typeof artist === "string") {
-      return this.urlExtractor.extractArtistId(artist);
-    } else {
-      return artist;
-    }
+    return typeof artist === "string"
+      ? this.urlExtractor.extractId<number>(`${artist}`, "artist", "yandex").id
+      : artist;
   }
 
   private getPlaylistId(
@@ -67,10 +107,24 @@ export default class WrappedYMApi {
     user?: UserId | UserName
   ): { id: PlaylistId | string; user: UserName | null } {
     if (typeof playlist === "string") {
-      return this.urlExtractor.extractPlaylistId(playlist);
-    } else {
+      const extracted = this.urlExtractor.extractId<any>(
+        playlist,
+        "playlist",
+        "yandex"
+      );
+
+      if ("id" in extracted) {
+        return { id: extracted.id, user: extracted.user ?? null };
+      }
+
+      if ("uid" in extracted) {
+        return { id: extracted.uid, user: null };
+      }
+
       return { id: playlist, user: user ? String(user) : null };
     }
+
+    return { id: playlist, user: user ? String(user) : null };
   }
 
   async getConcreteDownloadInfo(

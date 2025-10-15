@@ -9,6 +9,8 @@ const wrappedApi = new WrappedYMApi();
 
     const album = await wrappedApi.getApi().getAlbumWithTracks(3421932);
 
+    console.log(album);
+
     // Проверка, что ответ валидный
     if (
       !album ||
@@ -21,12 +23,10 @@ const wrappedApi = new WrappedYMApi();
 
     console.log(`${album.title}\n`);
     album.volumes.forEach((volume, vi) => {
-      if (!Array.isArray(volume))
-        throw new Error(`Volume ${vi} is not an array`);
-      volume.forEach((track, i) => {
-        if (!track.title) throw new Error(`Track ${i + 1} is missing title`);
-        console.log(`${i + 1}. ${track.title}`);
-      });
+      for (const [i, track] of Object.entries(volume)) {
+        if (!track.title) throw new Error(`Track ${i} is missing title`);
+        console.log(`${Number(i) + 1}. ${track.title}`);
+      }
     });
 
     // Если дошли сюда — тест пройден

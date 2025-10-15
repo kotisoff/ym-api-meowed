@@ -1,8 +1,7 @@
-import { HttpClientImproved } from "./Network";
+import { HttpClientImproved, HttpClientInterface } from "hyperttp";
 import { clckApiRequest } from "./PreparedRequest";
-import { HttpClientInterface } from "./Types/request";
 
-const defaultClient: HttpClientInterface = new HttpClientImproved();
+const defaultClient = new HttpClientImproved();
 
 /**
  * GET: clck.ru/--

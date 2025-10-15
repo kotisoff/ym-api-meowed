@@ -1,4 +1,4 @@
-import { Request } from "../Network";
+import { Request } from "hyperttp";
 import config from "./config";
 
 export default function apiRequest() {
