@@ -33,3 +33,4 @@ node_modules
 
 # pnpm
 pnpm-lock.yaml
+bun.lock

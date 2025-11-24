@@ -51,7 +51,6 @@ import {
 } from "./Types";
 import type { ObjectResponse } from "./Types/request";
 import shortenLink from "./ClckApi";
-import { XMLParser } from "fast-xml-parser";
 import { HttpClientImproved, RequestInterface, ResponseType } from "hyperttp";
 
 export default class YMApi {
