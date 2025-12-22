@@ -14,5 +14,5 @@ export default function directLinkRequest(url: string) {
     bodyData: {}
   });
 
-  return request
+  return request;
 }

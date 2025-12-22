@@ -14,13 +14,15 @@ const uid = Number(process.env.YM_UID);
     await WrappedApi.init({ access_token, uid });
     await api.init({ access_token, uid });
 
-    const trackId = 14329703;
+    const trackId = 118947620;
 
     const track = await api.getTrackDownloadInfoNew(
       trackId,
-      Types.DownloadTrackQuality.Lossless
+      Types.DownloadTrackQuality.Lossless,
+      "flac,aac,he-aac,mp3,flac-mp4,aac-mp4,he-aac-mp4",
+      "encraw"
     );
-    
+
     const info = track.downloadInfo;
 
     if (!info || !info.url) {

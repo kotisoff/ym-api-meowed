@@ -1,5 +1,5 @@
 import { HttpClientImproved, HttpClientInterface } from "hyperttp";
-import { clckApiRequest } from "./PreparedRequest";
+import { clckApiRequest } from "./PreparedRequest/index.js";
 
 const defaultClient = new HttpClientImproved();
 
