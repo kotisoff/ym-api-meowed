@@ -1,6 +1,6 @@
-import apiRequest from "./apiRequest.js";
-import clckApiRequest from "./clckApiRequest.js";
-import authRequest from "./authRequest.js";
-import directLinkRequest from "./directLinkRequest.js";
+import apiRequest from "./apiRequest";
+import clckApiRequest from "./clckApiRequest";
+import authRequest from "./authRequest";
+import directLinkRequest from "./directLinkRequest";
 
 export { apiRequest, clckApiRequest, authRequest, directLinkRequest };
