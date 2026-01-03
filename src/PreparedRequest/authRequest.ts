@@ -1,5 +1,5 @@
-import Request from "../Network/Request";
-import config from "./config";
+import { Request } from "hyperttp";
+import config from "./config.js";
 
 export default function authRequest() {
   return new Request(config.authApi);

@@ -1,35 +1,32 @@
 import { YMApi } from "../src";
+import { GetGenresResponse } from "../src/Types";
 import config from "./config";
 const api = new YMApi();
 
 (async () => {
   try {
     await api.init(config.user);
-    const genres = await api.getGenres();
-    console.log("Music genres:");
 
-    genres.forEach((genre) => {
-      let genreTitle = "Unknown";
-      if (genre.titles.en) {
-        genreTitle = genre.titles.en.title;
-      } else if (genre.titles.ru) {
-        genreTitle = genre.titles.ru.title;
-      }
-      console.log(`${genreTitle}`);
+    const genres = (await api.getGenres()) as GetGenresResponse;
 
-      if (genre.subGenres) {
-        genre.subGenres.forEach((subGenre) => {
-          let genreTitle = "Unknown";
-          if (subGenre.titles.en) {
-            genreTitle = subGenre.titles.en.title;
-          } else if (subGenre.titles.ru) {
-            genreTitle = subGenre.titles.ru.title;
-          }
-          console.log(`\t>${genreTitle}`);
-        });
-      }
-    });
-  } catch (e) {
-    console.log(`api error: ${e.message}`);
+    if (!genres || genres.length === 0) {
+      console.error("❌ No genres found");
+      process.exitCode = 1;
+    } else {
+      console.log("✔ Genres fetched successfully");
+      process.exitCode = 0;
+
+      // Минималистичный вывод: первые 5 жанров
+      console.log(
+        "Genres:",
+        genres
+          .slice(0, 5)
+          .map((g) => g.title)
+          .join(", ")
+      );
+    }
+  } catch (e: any) {
+    console.error("❌ API error:", e?.message ?? e);
+    process.exitCode = 1;
   }
 })();
