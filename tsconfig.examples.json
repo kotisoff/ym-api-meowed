@@ -1,8 +1,0 @@
-{
-  "extends": "./node_ts.json",
-  "include": ["example/**/*"],
-  "compilerOptions": {
-    "noEmit": true,
-    "strict": true
-  }
-}

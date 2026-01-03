@@ -26,11 +26,3 @@ node_modules
 
 # Users Environment Variables
 .lock-wscript
-
-# ENV
-.env
-.env.local
-
-# pnpm
-pnpm-lock.yaml
-bun.lock

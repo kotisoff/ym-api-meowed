@@ -1,39 +1,39 @@
-import { YMApi, Types } from "../src";
+import { SearchType } from "../src/types";
+import { YMApi } from "../src";
 import config from "./config";
-
 const api = new YMApi();
 
 (async () => {
   try {
     await api.init(config.user);
+    let query = "gorillaz";
+    const options: { type: SearchType } = { type: "artist" };
+    const artistResult = await api.search(query, options);
+    console.log(
+      `Search result for artists "${query}" (page: ${artistResult.page}, per page: ${artistResult.perPage})`
+    );
+    artistResult.artists?.results.forEach((artist) => {
+      console.log(artist.name);
+    });
+    options.type = "album";
+    const albumResult = await api.search(query, options);
+    console.log(
+      `\nSearch result for albums "${query}" (page: ${albumResult.page}, per page: ${albumResult.perPage})`
+    );
+    albumResult.albums?.results.forEach((album) => {
+      console.log(`${album.title} - ${album.artists[0].name}`);
+    });
+    query = "cristmas";
+    options.type = "track";
+    const result = await api.search(query, options);
+    console.log(
+      `\nSearch result for tracks: "${query}" (page: ${result.page}, per page: ${result.perPage})`
+    );
 
-    const queries: { q: string; type: Types.SearchType }[] = [
-      { q: "gorillaz", type: "artist" },
-      { q: "gorillaz", type: "album" },
-      { q: "cristmas", type: "track" }
-    ];
-
-    for (const { q, type } of queries) {
-      const result = await api.search(q, { type });
-      if (type === "artist" && result.artists?.results?.length) {
-        console.log(
-          `✔ Artist search "${q}" returned ${result.artists.results.length}`
-        );
-      } else if (type === "album" && result.albums?.results?.length) {
-        console.log(
-          `✔ Album search "${q}" returned ${result.albums.results.length}`
-        );
-      } else if (type === "track" && result.tracks?.results?.length) {
-        console.log(
-          `✔ Track search "${q}" returned ${result.tracks.results.length}`
-        );
-      } else {
-        console.error(`❌ Search "${q}" (${type}) returned no results`);
-        process.exitCode = 1;
-      }
-    }
-  } catch (e: any) {
-    console.error(`❌ API error: ${e?.message ?? String(e)}`);
-    process.exitCode = 1;
+    result.tracks?.results.forEach((track) => {
+      console.log(track.title + " - " + track.artists[0]?.name);
+    });
+  } catch (e) {
+    console.log(`api error: ${e.message}`);
   }
 })();
