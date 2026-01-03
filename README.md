@@ -2,6 +2,9 @@
 
 This is a Node.js wrapper for the [Yandex.Music](http://music.yandex.ru/) API that is used in mobile apps (iOS/Android).
 
+> Note:
+> I think I will no longer maintain this repo. Check this one: https://github.com/Dirold2/ym-api-meowed-d2
+
 ## Installation
 
 ```sh
